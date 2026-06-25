@@ -9,10 +9,10 @@ Inbound message (voicemail audio | email | ...)
        • prescription refill  → drafted refill action
        • reschedule           → proposed slot (draft)
        • escalation           → flag for human, no draft
-  → Task created (status: needs_review)
+  → Task created (status: ready | needs_action | urgent — by attention level)
   → Dashboard queue: staff sees message + read-only patient context + draft
-  → Staff one-click APPROVE  → status: done (human executes in their own system)
-       or REJECT / EDIT the draft
+  → Staff one-click APPROVE → status: approved (human executes in their own system)
+       or DISMISS / EDIT the draft
 ```
 No step writes to an EHR or sends a patient message automatically. Every
 outbound (the refill, the booking, the patient SMS) is a **draft a human acts
@@ -58,8 +58,8 @@ no human) and an approval tail (`CHW approve → Execution queue → Auto execut
 External services`). v1 **amputates the entire execute half** and keeps the
 listen→understand→check→draft half intact:
 - **No auto path.** Every task hits the human review queue.
-- **On approve → the draft is marked `done`; the human executes it in their own
-  system.** No execution queue, no auto-execute, no external-service calls.
+- **On approve → the task is marked `approved`; the human executes it in their
+  own system.** No execution queue, no auto-execute, no external-service calls.
 - **EHR / Records / Appointments → read-only seeded data** (simulates the Tier-2
   vision; never written to).
 - **The "action" is a draft object**, not an executed side effect.
@@ -84,14 +84,18 @@ dashboard/            # Next.js queue + history + read-only patient card
 ## Data model direction (v1)
 Centered on the message/task, not patient records:
 - `message` — raw inbound (audio url / email body), channel, transcript, STT meta.
-- `task` — type, status (needs_review / done / rejected / escalated), extracted
-  intent, eligibility result, the **draft**, flagged_reason, review fields, links
-  to patient + message.
-- `draft` — the heart of the pivot. Two halves:
+- `task` — type, status (**attention level**: ready / needs_action / urgent /
+  approved / dismissed), extracted intent, eligibility result, the **draft**,
+  flagged_reason, review fields, links to patient + message.
+- `draft` — the heart of the pivot. A proposed action is ALWAYS present (we draft
+  for everything); when eligibility isn't met, blockers say what to do first.
     - `structured` — machine fields (med, dosage, provider, slot…). The payload a
       future Tier-2 EHR integration would push on one click.
     - `rendered` — human-readable text the CHW reads / edits / copies into their
       own system today, with no integration.
+    - `blockers[]` — ACTION NEEDED prerequisites (failed eligibility checks
+      re-phrased as imperative next steps, e.g. "Schedule an appointment"). Empty
+      = ready to approve. Each has a `code` the dashboard can wire an action to.
     - plus `confidence`, `editable`. One object is Tier-1-useful and Tier-2-ready.
 - `patient` (seeded "EHR") — name, DOB, phone, last visit, active meds, insurance.
   Read-only; simulates the EHR for eligibility + the context card. No writeback.

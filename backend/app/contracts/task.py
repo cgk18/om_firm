@@ -31,7 +31,7 @@ class EligibilityResult(BaseModel):
 
 class Task(BaseModel):
     """A single reviewable unit of work: one patient request → one drafted action,
-    queued for a human. Approval marks it `done`; nothing auto-executes.
+    queued for a human. Approval marks it `approved`; nothing auto-executes.
 
     `eligibility` and `draft` are present for actionable tasks (refill /
     reschedule) and absent for pure escalations.

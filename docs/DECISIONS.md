@@ -2,6 +2,39 @@
 
 Running log of decisions + *why*, so we never re-litigate. Newest at top.
 
+## 2026-06-25 — Draft shape + task status buckets
+- **Decision (draft for everything):** every actionable task carries a **proposed
+  action**, even when eligibility fails. A `Draft` holds `structured` + `rendered`
+  **plus `blockers[]`** — "ACTION NEEDED" prerequisites (failed eligibility checks
+  re-phrased as imperative next steps, e.g. refill with no recent visit →
+  "Schedule an appointment"). Empty blockers = ready to approve. Blockers live on
+  the Draft (the next-steps travel with the proposal); each has a `code` the
+  dashboard can later wire to an action (e.g. a Schedule button).
+  **Why:** never just refuse — tell staff exactly what unblocks the action.
+- **Decision (status = attention level, 5 buckets):** because every task has a
+  draft, status conveys *how much attention is needed*, not draft presence.
+  Active: **ready** (passes all checks, one-click approve), **needs_action**
+  (blocked — incl. ambiguous / no patient match), **urgent** (emergency/safety).
+  Terminal: **approved** (human will execute in their own system), **dismissed**.
+  The *why* lives in `flagged_reason` + blockers; status carries only the lane.
+  Not splitting needs_action into fixable-vs-judgment for v1 (can add later).
+  **Why:** three active lanes separate the genuinely different kinds of attention
+  (rubber-stamp / do-work-first / drop-everything) without over-engineering.
+
+## 2026-06-25 — PHI / model-hosting posture
+- **Decision:** Demo runs on the Claude API with **seeded fake data** — no PHI,
+  so no HIPAA exposure. Proceed; don't block on compliance for the demo.
+- **At pilot (live PHI):** the primary path is a **BAA** (Business Associate
+  Agreement) with Anthropic directly, or Claude via AWS Bedrock / GCP Vertex
+  under their BAA. A BAA is a contractual fix to the data-flow concern and lets
+  us keep Claude's quality. **Using Claude is NOT inherently a HIPAA violation.**
+- **Local / self-hosted open LLM is a documented fallback**, not the default —
+  reserved for a clinic that contractually refuses any third-party processing.
+  Drawbacks: quality gap (date math, valid JSON), hosting/GPU ops, per-clinic
+  on-prem deploys, engineering time away from the real bottleneck (sales).
+  **Why:** every healthcare-AI company solves this with a BAA; local trades
+  quality + ops cost for perimeter control we don't need yet.
+
 ## 2026-06-25 — Architecture review of the hackathon repo + v1 direction
 Read the actual hackathon code (not just the carry-over map). Findings + calls:
 - **The pipeline is already ~80% draft-and-route.** `orchestrator/main_loop.py`

@@ -34,13 +34,20 @@ class TaskType(str, Enum):
 
 
 class TaskStatus(str, Enum):
-    """Lifecycle of a reviewable task. Nothing auto-executes — `done` means a
-    human approved the draft and will act on it in their own system."""
+    """Attention level of a task. Because every task carries a draft, status
+    conveys *how much human attention is needed*, not whether a draft exists.
+    The *why* lives in `flagged_reason` + draft blockers; status carries only the
+    lane. Nothing auto-executes — `approved` means a human approved the draft and
+    will act on it in their own system.
 
-    needs_review = "needs_review"
-    done = "done"
-    rejected = "rejected"
-    escalated = "escalated"
+    Active lanes: ready / needs_action / urgent.  Terminal: approved / dismissed.
+    """
+
+    ready = "ready"  # drafted, all checks pass — one-click approve
+    needs_action = "needs_action"  # drafted, but blockers must clear first (incl. ambiguous / no patient match)
+    urgent = "urgent"  # emergency / safety — jump the queue
+    approved = "approved"  # human approved; they execute in their own system
+    dismissed = "dismissed"  # rejected / no action needed
 
 
 class Urgency(str, Enum):
