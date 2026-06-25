@@ -2,6 +2,49 @@
 
 Running log of decisions + *why*, so we never re-litigate. Newest at top.
 
+## 2026-06-25 — Architecture review of the hackathon repo + v1 direction
+Read the actual hackathon code (not just the carry-over map). Findings + calls:
+- **The pipeline is already ~80% draft-and-route.** `orchestrator/main_loop.py`
+  emits a `proposed_action` + status (`pending_approval` / `escalated`) — that
+  *is* the draft. The only true writeback is the final executor
+  (`tasks/service.py::_execute_approval`), which writes to `berkapp` (a **fake
+  eCW mock we built**, not a real EHR) and sends real SMS via Twilio/TextBelt.
+  So "writeback" was always to our own mock — reframing to draft-and-route is a
+  small cut, not a rebuild.
+- **The LLM does almost nothing today** — Claude is used only for intake
+  extraction (a strong prompt; our best asset) and the daily summary. Emergency
+  detection, eligibility, dosage match, and date resolution are all brittle
+  heuristics (substring matches, regex). **Decision:** the LLM rework is the
+  highest-leverage build — push reasoning (triage/urgency, eligibility over
+  retrieved context, draft generation) into the model, keep deterministic
+  backstops where safety demands (emergency = LLM biased-to-escalate *plus*
+  keyword net).
+
+- **Decision (two-tier product):** Demo focuses on **Tier 1** (no EHR): listen →
+  extract → classify → draft → prioritize → queue; eligibility "smarts" need
+  chart data we don't have without integration. **Tier 2** (with EHR read/write)
+  is the vision: auto-verify against the chart + one-click push.
+  **Why:** the verification intelligence *is* the EHR-dependent part; without it
+  the defensible value is triage + drafting (kills the listening/typing/triage
+  time), and that's honest and sellable.
+- **Decision (demo eligibility):** keep a **seeded patient/prescription dataset
+  that stands in for the EHR**, run the real auto-verification against it, and
+  **narrate it honestly** as the Tier-2 vision ("with EHR read access this is
+  automatic; without it you still get the draft + a what-to-verify checklist").
+  **Why:** best demo wow without vaporware; the seed simulates integration so we
+  can *show* Tier 2 while shipping Tier 1.
+- **Decision (stack):** keep Python/FastAPI + Next.js/Tailwind. Explicitly **not
+  Java** — switching discards the working intake pipeline and SDK ergonomics for
+  zero demo benefit.
+- **Decision (carry-over):** start fresh in `om_firm`; retype (not import) the
+  keepers — intake prompt + schemas, Deepgram wrapper, task/status state machine
+  + dashboard queue/history UI, eligibility *rules as reference*, demo audio +
+  seeded fixtures. Leave behind `berkapp`, the writeback executor, Twilio/
+  TextBelt auto-send, telephony, message_relay/summary.
+- **Decision (first build):** scaffold repo + data model (FastAPI + Next
+  skeleton, `message → task → draft` schema, seeded fixtures) before filling in
+  agents.
+
 ## 2026-06-24 — Continuing the hackathon project solo
 - **Decision:** The originator (group leader at the hackathon) continues the
   project solo. One former teammate already approached separately; the other two
