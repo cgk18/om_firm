@@ -1,0 +1,47 @@
+[
+  {
+    "id": "40001",
+    "patient_id": "10003",
+    "provider_id": "5001",
+    "start_time": "2026-06-30T10:00:00Z",
+    "end_time": "2026-06-30T10:30:00Z",
+    "status": "scheduled"
+  },
+  {
+    "id": "40002",
+    "patient_id": "10006",
+    "provider_id": "5001",
+    "start_time": "2026-07-02T14:00:00Z",
+    "end_time": "2026-07-02T14:30:00Z",
+    "status": "scheduled"
+  },
+  {
+    "id": "40003",
+    "patient_id": "10007",
+    "provider_id": "5002",
+    "start_time": "2026-07-06T09:30:00Z",
+    "end_time": "2026-07-06T10:00:00Z",
+    "status": "scheduled"
+  },
+  {
+    "id": "40004",
+    "patient_id": "10012",
+    "provider_id": "5001",
+    "start_time": "2026-08-15T09:00:00Z",
+    "end_time": "2026-08-15T09:30:00Z",
+    "status": "scheduled"
+  },
+  {
+    "id": "40005",
+    "patient_id": "10010",
+    "provider_id": "5001",
+    "start_time": "2026-05-01T10:00:00Z",
+    "end_time": "2026-05-01T10:30:00Z",
+    "status": "completed",
+    "notes": "Reviewed blood-pressure regimen. Continue Lisinopril 10mg and Spironolactone 25mg; both well tolerated together.",
+    "approved_meds": [
+      { "medication_name": "Lisinopril", "dosage": "10 mg" },
+      { "medication_name": "Spironolactone", "dosage": "25 mg" }
+    ]
+  }
+]

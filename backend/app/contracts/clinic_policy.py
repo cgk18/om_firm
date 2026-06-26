@@ -11,16 +11,23 @@ class ClinicPolicy(BaseModel):
     values. This is NOT a general rules engine — clients change knobs, not author
     new rule types (that's Level 2, deferred).
 
-    NOTE: the default *values* below are carried from the hackathon and are up
-    for review (see ARCHITECTURE.md TODO) — change the defaults, not the shape.
+    Default values reflect the refill ruleset agreed for v1 (visit recency vs.
+    planned-visit window, established-conflict threshold). Tune the values here;
+    the rule *set* lives in eligibility/.
     """
 
     # --- Refill rules ---
-    refill_visit_window_days: int = 183  # last visit must fall within this window
-    require_dosage_match: bool = True  # requested dosage must match the active script
+    # Visit requirement passes if EITHER: a visit within the last
+    # `refill_recent_visit_days`, OR a future appointment scheduled within the
+    # next `refill_future_visit_window_days`.
+    refill_recent_visit_days: int = 122  # ~4 months (a third of a year)
+    refill_future_visit_window_days: int = 365  # a planned visit within the next year
+    # A drug conflict is "established"/tolerated once the two meds have overlapped
+    # for at least this long; a fresher conflict routes to the provider.
+    conflict_established_days: int = 365
     controlled_substance_excluded: bool = True  # controlled meds always escalate
 
-    # --- Insurance ---
+    # --- Insurance (checked against the patient's on-file plan, not the call) ---
     accepted_insurance: list[str] = Field(default_factory=list)  # empty list = accept all
 
     # --- Reschedule rules ---

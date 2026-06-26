@@ -4,13 +4,23 @@ Running log of decisions + *why*, so we never re-litigate. Newest at top.
 
 ## 2026-06-25 — Draft shape + task status buckets
 - **Decision (draft for everything):** every actionable task carries a **proposed
-  action**, even when eligibility fails. A `Draft` holds `structured` + `rendered`
-  **plus `blockers[]`** — "ACTION NEEDED" prerequisites (failed eligibility checks
-  re-phrased as imperative next steps, e.g. refill with no recent visit →
-  "Schedule an appointment"). Empty blockers = ready to approve. Blockers live on
-  the Draft (the next-steps travel with the proposal); each has a `code` the
-  dashboard can later wire to an action (e.g. a Schedule button).
-  **Why:** never just refuse — tell staff exactly what unblocks the action.
+  action**, even when eligibility fails — "ACTION NEEDED" prerequisites (failed
+  eligibility checks re-phrased as imperative next steps, e.g. refill with no
+  recent visit → "Schedule an appointment"). Empty blockers = ready to approve.
+  Each blocker has a `code` the dashboard can later wire to an action.
+- **Decision (blockers on Task, not Draft — A2, revised 2026-06-25):** `blockers`
+  live on the **`Task`**, not the `Draft`. **Why:** the no-patient cases (unknown
+  patient, missing info) need an action item ("verify identity") but have no
+  draftable action — revealing blockers are *task-level* ("what must happen before
+  this is resolved"), only usually about the draft. Task-level gives the dashboard
+  one rendering path and lets identity actions be coded buttons too. Cheap to
+  switch now (no UI consumes it yet). Supersedes the earlier "blockers on Draft."
+- **Decision (patient matching — two-factor, never one signal):** auto-match only
+  when **≥2 of {name, DOB, phone} agree** (phone normalized to last-10-digits).
+  **Why:** a single signal mis-identifies — caretaker/shared phones overlap, names
+  collide. Phone-alone or name-alone → never auto-match; surface to verify. Fewer
+  than 2 identifiers provided → `insufficient_info`; ≥2 provided but no chart
+  agrees → `not_found`. Both route to needs_action with an identity blocker.
 - **Decision (status = attention level, 5 buckets):** because every task has a
   draft, status conveys *how much attention is needed*, not draft presence.
   Active: **ready** (passes all checks, one-click approve), **needs_action**
@@ -20,6 +30,21 @@ Running log of decisions + *why*, so we never re-litigate. Newest at top.
   Not splitting needs_action into fixable-vs-judgment for v1 (can add later).
   **Why:** three active lanes separate the genuinely different kinds of attention
   (rubber-stamp / do-work-first / drop-everything) without over-engineering.
+
+## 2026-06-25 — Intake model: Haiku 4.5 (eval-backed)
+- **Decision:** intake extraction runs on `claude-haiku-4-5`. Eval against the
+  14-message golden set: **Haiku 100%** (99/99 field checks) at ~$0.0022/msg
+  (~$6.60 / 3k); **Sonnet 4.6** also 100% at ~$0.0066/msg (3× the cost, no
+  accuracy gain); **Opus 4.8** not scored — it 400s on our `temperature=0`
+  (sampling params removed on 4.7/4.8) and is overkill for short extraction.
+  **Why:** extraction is short and mechanical — Haiku's wheelhouse; pick the
+  cheapest model that clears the set. Keep `temperature=0` (determinism on
+  Haiku); an Opus-tier swap later would require dropping it.
+- **Decision (impl):** intake uses **prompt-and-parse** (ask for JSON → validate
+  into `Intent` → one repair retry), NOT structured outputs. `messages.parse`
+  hangs the API's constrained decoding on our nested `Intent` schema (deep
+  nesting + optional date fields) — it timed out every call. Prompt-and-parse
+  runs ~2s/call and was the hackathon's proven path.
 
 ## 2026-06-25 — PHI / model-hosting posture
 - **Decision:** Demo runs on the Claude API with **seeded fake data** — no PHI,

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "10001",
+    "first_name": "Maria",
+    "last_name": "Garcia",
+    "date_of_birth": "1971-03-02",
+    "phone": "(415) 555-0142",
+    "insurance_plan": "Aetna",
+    "last_visit": "2026-04-10"
+  },
+  {
+    "id": "10002",
+    "first_name": "Robert",
+    "last_name": "Chen",
+    "date_of_birth": "1958-11-20",
+    "phone": "(415) 555-0188",
+    "insurance_plan": "Blue Cross Blue Shield",
+    "last_visit": "2025-09-01"
+  },
+  {
+    "id": "10003",
+    "first_name": "Linda",
+    "last_name": "Nguyen",
+    "date_of_birth": "1986-07-14",
+    "phone": "(415) 555-0110",
+    "insurance_plan": "UnitedHealthcare",
+    "last_visit": "2026-05-22"
+  },
+  {
+    "id": "10004",
+    "first_name": "James",
+    "last_name": "Wilson",
+    "date_of_birth": "1990-02-09",
+    "phone": "(415) 555-0173",
+    "insurance_plan": "Oscar Health",
+    "last_visit": "2026-06-01"
+  },
+  {
+    "id": "10005",
+    "first_name": "Patricia",
+    "last_name": "Brown",
+    "date_of_birth": "1965-09-30",
+    "phone": "(415) 555-0155",
+    "insurance_plan": "Medicare",
+    "last_visit": "2026-03-15"
+  },
+  {
+    "id": "10006",
+    "first_name": "David",
+    "last_name": "Kim",
+    "date_of_birth": "1979-12-05",
+    "phone": "(415) 555-0126",
+    "insurance_plan": "Cigna",
+    "last_visit": "2026-05-30"
+  },
+  {
+    "id": "10007",
+    "first_name": "Daniel",
+    "last_name": "Foster",
+    "date_of_birth": "1974-08-09",
+    "phone": "(415) 555-0133",
+    "insurance_plan": "Aetna",
+    "last_visit": "2026-05-12"
+  },
+  {
+    "id": "10008",
+    "first_name": "Karen",
+    "last_name": "Diaz",
+    "date_of_birth": "1991-06-03",
+    "phone": "(415) 555-0147",
+    "insurance_plan": "Cigna",
+    "last_visit": "2026-05-20"
+  },
+  {
+    "id": "10009",
+    "first_name": "Angela",
+    "last_name": "Wright",
+    "date_of_birth": "1969-10-22",
+    "phone": "(415) 555-0161",
+    "insurance_plan": "Medicare",
+    "last_visit": "2026-06-05"
+  },
+  {
+    "id": "10010",
+    "first_name": "Sandra",
+    "last_name": "Lewis",
+    "date_of_birth": "1962-02-14",
+    "phone": "(415) 555-0150",
+    "insurance_plan": "Aetna",
+    "last_visit": "2026-05-01"
+  },
+  {
+    "id": "10011",
+    "first_name": "Mark",
+    "last_name": "Reyes",
+    "date_of_birth": "1980-03-22",
+    "phone": "(415) 555-0151",
+    "insurance_plan": "Cigna",
+    "last_visit": "2026-06-10"
+  },
+  {
+    "id": "10012",
+    "first_name": "Olivia",
+    "last_name": "Park",
+    "date_of_birth": "1975-09-05",
+    "phone": "(415) 555-0152",
+    "insurance_plan": "UnitedHealthcare",
+    "last_visit": "2026-01-20"
+  }
+]

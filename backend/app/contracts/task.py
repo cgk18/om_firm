@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from .draft import Draft
+from .draft import Blocker, Draft
 from .enums import TaskStatus, TaskType
 from .intent import ExtractedRequest
 
@@ -49,6 +49,7 @@ class Task(BaseModel):
     agent_summary: str = ""
     eligibility: EligibilityResult | None = None
     draft: Draft | None = None
+    blockers: list[Blocker] = Field(default_factory=list)  # ACTION NEEDED items; empty = ready
     flagged_reason: str | None = None
 
     created_at: datetime = Field(default_factory=_now)

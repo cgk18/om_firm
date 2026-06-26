@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Provider(BaseModel):
@@ -12,7 +12,11 @@ class Provider(BaseModel):
 
 class Prescription(BaseModel):
     """A seeded prescription record. Eligibility reads these to verify a refill
-    (active? dosage match? controlled?). Read-only — never written back."""
+    (active? dosage doctor-approved? controlled? conflicts?). Read-only.
+
+    `prescribed_date` is the original start date — used to measure how long two
+    conflicting meds have overlapped (an established >1yr overlap is tolerated).
+    """
 
     id: str
     patient_id: str
@@ -21,13 +25,23 @@ class Prescription(BaseModel):
     dosage: str
     instructions: str = ""
     active: bool = True
+    prescribed_date: date | None = None
     last_filled: date | None = None
     controlled: bool = False
 
 
+class ApprovedMed(BaseModel):
+    """A medication+dosage the provider approved at a visit — the structured,
+    auditable form of "it's in the doctor's notes." Lets the refill check accept
+    a dosage that matches the visit's approval even if it differs from the script."""
+
+    medication_name: str
+    dosage: str
+
+
 class Appointment(BaseModel):
-    """A seeded appointment. Used for last-visit lookup and reschedule conflict
-    checks. Read-only."""
+    """A seeded appointment. Used for last-visit lookup, reschedule conflict
+    checks, and the doctor-approved-dosage source. Read-only."""
 
     id: str
     patient_id: str
@@ -35,6 +49,8 @@ class Appointment(BaseModel):
     start_time: datetime
     end_time: datetime
     status: str = "scheduled"  # scheduled | completed | cancelled
+    notes: str | None = None  # free-text provider notes (shown on the card)
+    approved_meds: list[ApprovedMed] = Field(default_factory=list)  # structured dosage approvals
 
 
 class Patient(BaseModel):

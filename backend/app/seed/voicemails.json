@@ -1,0 +1,128 @@
+[
+  {
+    "id": "vm_001",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T08:12:00Z",
+    "raw_ref": "seed/audio/vm_001.wav",
+    "transcript": "Hi, this is Maria Garcia, date of birth March 2nd, 1971. I'm calling because I'm running low on my Lisinopril, the ten milligram one, and I was hoping to get a refill. You can reach me at 415-555-0142. Thank you so much.",
+    "_scenario": "Clean refill — active script, recent visit, accepted insurance. Expect: REFILL / ready.",
+    "_expected_patient": "10001"
+  },
+  {
+    "id": "vm_002",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T08:31:00Z",
+    "raw_ref": "seed/audio/vm_002.wav",
+    "transcript": "Yeah, hi, this is Robert Chen. I take the Metformin, the 500 milligram, twice a day, and I'm just about out. Could you go ahead and refill that for me? My callback number is 415-555-0188, and my birthday is November 20th, 1958. Thanks.",
+    "_scenario": "Blocked refill — last visit 2025-09-01 is >6 months. Expect: REFILL / needs_action, blocker schedule_missing.",
+    "_expected_patient": "10002"
+  },
+  {
+    "id": "vm_003",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T09:03:00Z",
+    "raw_ref": "seed/audio/vm_003.wav",
+    "transcript": "Hello, this is Linda Nguyen, DOB July 14th, 1986. I have an appointment with Dr. Patel on the 30th but something came up at work. Could we move it to that Thursday, July 2nd, sometime in the afternoon? You can reach me at 415-555-0110. Thanks a lot.",
+    "_scenario": "Reschedule with conflict — requested 7/2 ~2pm collides with appt_002; expect proposed alt slot. RESCHEDULE / ready.",
+    "_expected_patient": "10003"
+  },
+  {
+    "id": "vm_004",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T09:20:00Z",
+    "raw_ref": "seed/audio/vm_004.wav",
+    "transcript": "Hi, James Wilson calling, born February 9th, 1990. I need a refill on my albuterol inhaler, the rescue one. My insurance is Oscar Health. My number is 415-555-0173. Appreciate it.",
+    "_scenario": "Insurance not accepted (Oscar Health not in policy). Expect: REFILL / needs_action, blocker insurance_unverified.",
+    "_expected_patient": "10004"
+  },
+  {
+    "id": "vm_005",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T09:41:00Z",
+    "raw_ref": "seed/audio/vm_005.wav",
+    "transcript": "Hi, this is Patricia Brown. Um, I've been having this chest pain since this morning and it's not going away, and my left arm feels kind of numb. I really don't know what to do. My number is 415-555-0155. Please call me back.",
+    "_scenario": "Emergency — chest pain + arm numbness. Expect: escalate / urgent, no routine draft.",
+    "_expected_patient": "10005"
+  },
+  {
+    "id": "vm_006",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T10:05:00Z",
+    "raw_ref": "seed/audio/vm_006.wav",
+    "transcript": "Hey, David Kim here, December 5th, 1979. I need to refill my atorvastatin. I'm pretty sure I'm on the 80 milligram now. Give me a call at 415-555-0126. Thanks.",
+    "_scenario": "Dosage mismatch — active script is 40 mg, caller asks for 80 mg. Expect: REFILL / needs_action, blocker dosage_mismatch.",
+    "_expected_patient": "10006"
+  },
+  {
+    "id": "vm_007",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T10:22:00Z",
+    "raw_ref": "seed/audio/vm_007.wav",
+    "transcript": "Hi, um, this is Tom Bradley. I'm trying to get a refill on my blood pressure medication. My date of birth is April 18th, 1983, and my number is 415-555-0199. Thank you.",
+    "_scenario": "Unknown patient — Tom Bradley is not in the database. Expect: needs_action, blocker no_patient_match.",
+    "_expected_patient": null
+  },
+  {
+    "id": "vm_008",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T10:38:00Z",
+    "raw_ref": "seed/audio/vm_008.wav",
+    "transcript": "Hey, yeah, it's Jenny. I need to move my appointment next week to a different day if that's possible. Give me a call back, thanks.",
+    "_scenario": "Missing fields — no last name, no DOB, no callback number. Cannot verify identity. Expect: needs_action, blocker info_missing.",
+    "_expected_patient": null
+  },
+  {
+    "id": "vm_009",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T10:54:00Z",
+    "raw_ref": "seed/audio/vm_009.wav",
+    "transcript": "Hi, this is Daniel Foster, date of birth, uh, August 9th, 1974. Two things — I need a refill on my Levothyroxine, the 75 microgram, and I also need to move my appointment with Dr. Okafor, the one on the 6th, to that Thursday instead if there's room. My number's 415-555-0133. Thanks so much.",
+    "_scenario": "Multi-intent — refill + reschedule in one call. Expect TWO tasks: REFILL / ready and RESCHEDULE / ready.",
+    "_expected_patient": "10007"
+  },
+  {
+    "id": "vm_010",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T11:09:00Z",
+    "raw_ref": "seed/audio/vm_010.wav",
+    "transcript": "Hi, this is Karen Diaz, DOB June 3rd, 1991. I'm calling to refill my alprazolam, the point five milligram. I'm almost out. You can reach me at 415-555-0147. Thank you.",
+    "_scenario": "Controlled substance — Alprazolam is controlled; policy excludes auto-handling. Expect: REFILL / needs_action, blocker controlled_substance.",
+    "_expected_patient": "10008"
+  },
+  {
+    "id": "em_001",
+    "channel": "email",
+    "received_at": "2026-06-25T11:25:00Z",
+    "raw_body": "Hello, this is Angela Wright (DOB 1969-10-22). Could I please get a refill on my omeprazole 20mg? I'm down to my last few capsules. Thank you, Angela. Callback: 415-555-0161",
+    "transcript": "Hello, this is Angela Wright (DOB 1969-10-22). Could I please get a refill on my omeprazole 20mg? I'm down to my last few capsules. Thank you, Angela. Callback: 415-555-0161",
+    "_scenario": "Email channel — same pipeline as voicemail (channel-agnostic). Clean refill. Expect: REFILL / ready.",
+    "_expected_patient": "10009"
+  },
+  {
+    "id": "vm_011",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T11:40:00Z",
+    "raw_ref": "seed/audio/vm_011.wav",
+    "transcript": "Hi, this is Sandra Lewis, date of birth February 14th, 1962. I'm calling to refill my Lisinopril. My number is 415-555-0150. Thank you.",
+    "_scenario": "Conflict ESTABLISHED — Lisinopril conflicts with Spironolactone, but co-prescribed since 2023 (>1yr) so tolerated. Expect: REFILL / ready.",
+    "_expected_patient": "10010"
+  },
+  {
+    "id": "vm_012",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T11:55:00Z",
+    "raw_ref": "seed/audio/vm_012.wav",
+    "transcript": "Hey, Mark Reyes here, born March 22nd, 1980. Could you refill my Sertraline, the 50 milligram? Call me at 415-555-0151. Thanks.",
+    "_scenario": "Conflict FRESH — Sertraline conflicts with Tramadol added 2026-04-20 (<1yr overlap). Expect: REFILL / needs_action, blocker provider_review (conflict).",
+    "_expected_patient": "10011"
+  },
+  {
+    "id": "vm_013",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T12:10:00Z",
+    "raw_ref": "seed/audio/vm_013.wav",
+    "transcript": "Hi, this is Olivia Park, DOB September 5th, 1975. I need a refill on my Metoprolol. You can reach me at 415-555-0152. Thanks.",
+    "_scenario": "Future-appt saves — last visit 2026-01-20 is >4mo, but a visit is booked 2026-08-15 (within a year). Expect: REFILL / ready.",
+    "_expected_patient": "10012"
+  }
+]

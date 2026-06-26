@@ -36,15 +36,17 @@ DraftAction = Annotated[
 
 
 class Blocker(BaseModel):
-    """A prerequisite that must be cleared before the proposed action can be
-    approved — a failed eligibility check re-expressed as an imperative next step.
+    """A prerequisite that must be cleared before a task can be resolved — usually
+    a failed eligibility check re-expressed as an imperative next step, but also
+    task-level needs with no draft (e.g. "verify the patient's identity").
 
-    `code` is the machine handle the dashboard can wire an action to (e.g. a
-    "Schedule" button that spins up a reschedule task); `label` is the imperative
-    shown to staff; `detail` is the why.
+    Lives on the `Task` (not the `Draft`), so a task carries its action items
+    whether or not it has a drafted action. `code` is the machine handle the
+    dashboard can wire an action to; `label` is the imperative shown to staff;
+    `detail` is the why.
     """
 
-    code: str  # e.g. "schedule_missing" | "info_missing" | "dosage_mismatch" | "insurance_unverified"
+    code: str  # e.g. "schedule_visit" | "dosage_mismatch" | "no_patient_match" | "verify_identity"
     label: str
     detail: str = ""
 
@@ -59,10 +61,10 @@ class Draft(BaseModel):
         their own system today (Tier-1-useful with no integration).
 
     NEVER auto-executed. Approval marks the task approved; a human acts on it.
+    Action-needed items live on the Task (`Task.blockers`), not here.
     """
 
     structured: DraftAction
     rendered: str
-    blockers: list[Blocker] = Field(default_factory=list)  # ACTION NEEDED items; empty = ready to approve
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     editable: bool = True

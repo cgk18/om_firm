@@ -39,7 +39,7 @@ class Intent(BaseModel):
 
     first_name: str | None = None
     last_name: str | None = None
-    date_of_birth: date | None = None
+    date_of_birth: datetime.date | None = None
     phone_number: str | None = None
     insurance_plan: str | None = None
     request: ExtractedRequest = Field(default_factory=ExtractedRequest)

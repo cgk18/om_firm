@@ -19,7 +19,7 @@ from .enums import (
 )
 from .intent import ExtractedRequest, Intent, PreferredTime
 from .message import Message
-from .patient import Appointment, Patient, Prescription, Provider
+from .patient import ApprovedMed, Appointment, Patient, Prescription, Provider
 from .task import EligibilityCheck, EligibilityResult, Task
 
 __all__ = [
@@ -40,6 +40,7 @@ __all__ = [
     "Patient",
     "Prescription",
     "Appointment",
+    "ApprovedMed",
     "Provider",
     # draft
     "Draft",

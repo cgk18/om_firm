@@ -1,0 +1,8 @@
+{
+  "_comment": "Curated demo list of medication pairs that trip an interaction warning. NOT a real pharmacological interaction database — for the demo only. Order within a pair does not matter.",
+  "conflicts": [
+    ["Lisinopril", "Spironolactone"],
+    ["Warfarin", "Aspirin"],
+    ["Sertraline", "Tramadol"]
+  ]
+}
