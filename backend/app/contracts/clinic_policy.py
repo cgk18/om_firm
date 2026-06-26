@@ -31,8 +31,14 @@ class ClinicPolicy(BaseModel):
     accepted_insurance: list[str] = Field(default_factory=list)  # empty list = accept all
 
     # --- Reschedule rules ---
-    reschedule_max_lead_days: int = 60  # how far out a proposed slot may be
-    appointment_duration_minutes: int = 30
+    appointment_duration_minutes: int = 30  # slot length for a proposed appointment
+    # TODO (reschedule plumbing): add these three knobs.
+    #   default_working_hours: dict[str, list[str]] = Field(default_factory=lambda: {
+    #       "mon": ["08:30", "17:00"], "tue": ["08:30", "17:00"], "wed": ["08:30", "17:00"],
+    #       "thu": ["08:30", "17:00"], "fri": ["08:30", "17:00"],   # no sat/sun key = closed
+    #   })  # clinic-wide default; a Provider.working_hours value overrides this per-doctor
+    #   reschedule_search_days: int = 30    # how far ahead find_next_available looks
+    #   reschedule_far_out_days: int = 30   # proposed slot beyond this -> raise the "far out" flag
 
 
 def default_policy() -> ClinicPolicy:

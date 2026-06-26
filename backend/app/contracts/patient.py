@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 class Provider(BaseModel):
     id: str
     name: str
+    working_hours: dict[str, list[str]] | None = None 
+    covering_provider_id: str | None = None
 
 
 class Prescription(BaseModel):
