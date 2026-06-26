@@ -2,6 +2,30 @@
 
 Running log of decisions + *why*, so we never re-litigate. Newest at top.
 
+## 2026-06-25 — v1 guardrails + message relay un-parked
+- **Patient-status gate:** added `Patient.status` (active/inactive/discharged/…).
+  Orchestrator flags any non-active patient BEFORE drafting (no "ready" action for
+  a discharged record). Chose discrete status over visit-frequency inference —
+  discharge/transfer/deceased are explicit facts you can't infer from a pattern,
+  and the frequency signal is already covered by the refill visit-requirement.
+- **Refill checks added:** *too-soon* (`last_filled + days_supply` vs
+  `early_refill_buffer_days`) and *expired* (`Prescription.valid_until`). "Identical
+  refill to last time" is already how drafting works. The proactive "patient
+  projected to run out but didn't call" idea is a **separate panel-sweep feature**
+  (not message-driven) — parked.
+- **Reschedule repeated-move flag:** `Appointment.times_rescheduled` ≥
+  `reschedule_repeat_flag_threshold` → soft flag (catches pushing a visit to game
+  refills).
+- **Message relay UN-PARKED and built** (was out of v1 scope). Three-tier triage:
+  emergency (already hard-stopped) / clinical-but-not-emergency (symptoms, med
+  reaction → flag + escalate to provider) / routine (→ `ready`, one-click send).
+  Drafts a note to the patient's `primary_provider_id` (new field), falling back
+  to the on-duty provider. New `MessageRelayAction` draft type, `message_relay`
+  task type.
+- **Staff edit:** `apply_decision(..., decision="edit", edited_text=...)` replaces
+  a draft's rendered text (and a relay's message body) so staff can fix wording
+  before approving. Backend support; the edit UI is the dashboard's job.
+
 ## 2026-06-25 — Draft shape + task status buckets
 - **Decision (draft for everything):** every actionable task carries a **proposed
   action**, even when eligibility fails — "ACTION NEEDED" prerequisites (failed

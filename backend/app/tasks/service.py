@@ -24,12 +24,14 @@ def intake_to_tasks(
     store,
     policy,
     now: datetime,
+    holds=None,
     extract: Callable[..., Any] = extract_intent,
 ) -> list[Task]:
     """Message -> Intent -> Task(s) -> stored. `extract` is injectable so the
-    demo/tests can run on canned intents without API calls."""
+    demo/tests can run on canned intents without API calls. `holds` is the slot
+    reservation store (orchestrator uses a no-op one if omitted)."""
     intent = extract(message)
-    tasks = orchestrate(intent, message, store=store, policy=policy, now=now)
+    tasks = orchestrate(intent, message, store=store, policy=policy, now=now, holds=holds)
     return repo.add_all(tasks)
 
 
@@ -40,14 +42,26 @@ def apply_decision(
     *,
     note: str | None = None,
     reviewer: str = "Front desk",
+    edited_text: str | None = None,
 ) -> Task | None:
-    """approve | dismiss | reopen. Returns the updated task, or None if missing.
-    Approval is a status write only — no external action is executed."""
+    """approve | dismiss | reopen | edit. Returns the updated task, or None if
+    missing. Approval is a status write only — no external action is executed.
+    `edit` replaces the draft's rendered text (and a relay's message body) with
+    the staff-edited version; status is unchanged so they can then approve."""
     task = repo.get(task_id)
     if task is None:
         return None
     now = datetime.now(timezone.utc)
     note = note.strip() if note and note.strip() else None
+
+    if decision == "edit":
+        if task.draft is not None and edited_text is not None:
+            task.draft.rendered = edited_text
+            if getattr(task.draft.structured, "type", None) == "message_relay":
+                task.draft.structured.message = edited_text
+        if note:
+            task.reviewer_note = note
+        return task
 
     if decision == "approve":
         task.status = TaskStatus.approved

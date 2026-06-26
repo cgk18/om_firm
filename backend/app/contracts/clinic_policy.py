@@ -26,19 +26,24 @@ class ClinicPolicy(BaseModel):
     # for at least this long; a fresher conflict routes to the provider.
     conflict_established_days: int = 365
     controlled_substance_excluded: bool = True  # controlled meds always escalate
+    early_refill_buffer_days: int = 7  # flag a refill if more than this much supply remains
 
     # --- Insurance (checked against the patient's on-file plan, not the call) ---
     accepted_insurance: list[str] = Field(default_factory=list)  # empty list = accept all
 
     # --- Reschedule rules ---
     appointment_duration_minutes: int = 30  # slot length for a proposed appointment
-    # TODO (reschedule plumbing): add these three knobs.
-    #   default_working_hours: dict[str, list[str]] = Field(default_factory=lambda: {
-    #       "mon": ["08:30", "17:00"], "tue": ["08:30", "17:00"], "wed": ["08:30", "17:00"],
-    #       "thu": ["08:30", "17:00"], "fri": ["08:30", "17:00"],   # no sat/sun key = closed
-    #   })  # clinic-wide default; a Provider.working_hours value overrides this per-doctor
-    #   reschedule_search_days: int = 30    # how far ahead find_next_available looks
-    #   reschedule_far_out_days: int = 30   # proposed slot beyond this -> raise the "far out" flag
+    default_working_hours: dict[str, list[str]] = Field(default_factory = lambda: {
+        "mon": ["08:30", "17:00"], "tue": ["08:30", "17:00"], "wed": ["08:30", "17:00"],
+        "thu": ["08:30", "17:00"], "fri": ["08:30", "17:00"],   # no sat/sun key = closed
+
+    })
+    reschedule_search_days: int = 30
+    reschedule_far_out_days: int = 30
+    # Flag (for staff review) once the appointment being moved has already been
+    # rescheduled this many times — catches a patient pushing visits to game refills.
+    reschedule_repeat_flag_threshold: int = 2
+    
 
 
 def default_policy() -> ClinicPolicy:

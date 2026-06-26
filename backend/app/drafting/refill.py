@@ -27,6 +27,8 @@ _CHECK_TO_BLOCKER: dict[str, tuple[str, str]] = {
     "controlled_substance": ("controlled_substance", "Provider authorization required"),
     "insurance_accepted": ("insurance_not_accepted", "Verify insurance"),
     "drug_conflict": ("drug_conflict", "Provider review — drug interaction"),
+    "refill_timing": ("refill_too_soon", "Refill requested early — confirm timing"),
+    "prescription_current": ("prescription_expired", "Prescription expired — needs provider renewal"),
 }
 
 

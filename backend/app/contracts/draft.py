@@ -29,9 +29,19 @@ class RescheduleAction(BaseModel):
     cancel_appointment_id: str | None = None
 
 
+class MessageRelayAction(BaseModel):
+    """Structured relay payload — a drafted note to forward to the provider.
+    `message` is the body staff review (and may edit) before sending."""
+
+    type: Literal["message_relay"] = "message_relay"
+    patient_id: str
+    provider_id: str | None = None
+    message: str
+
+
 # Discriminated on `type` so a Draft round-trips to/from JSON as the right action.
 DraftAction = Annotated[
-    Union[RefillAction, RescheduleAction], Field(discriminator="type")
+    Union[RefillAction, RescheduleAction, MessageRelayAction], Field(discriminator="type")
 ]
 
 

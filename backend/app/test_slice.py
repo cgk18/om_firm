@@ -7,25 +7,32 @@ from __future__ import annotations
 
 from app.contracts import default_policy
 from app.eval.golden import canned_extract
+from app.scheduling import HoldStore
 from app.seed import REFERENCE_NOW, SeedStore, load_messages
 from app.tasks import TasksRepo, apply_decision, intake_to_tasks
 
 # Expected status lane per message.
 EXPECT = {
-    "vm_001": "ready", "vm_002": "needs_action", "vm_003": "needs_action",  # reschedule placeholder
+    "vm_001": "ready", "vm_002": "needs_action",
+    "vm_003": "needs_action",  # reschedule: requested 2pm taken -> propose alt + flag
     "vm_004": "needs_action", "vm_005": "urgent", "vm_006": "needs_action",
     "vm_007": "needs_action", "vm_008": "needs_action", "vm_010": "needs_action",
     "em_001": "ready", "vm_011": "ready", "vm_012": "needs_action", "vm_013": "ready",
+    "vm_014": "needs_action",  # discharged patient -> status gate
+    "vm_015": "needs_action",  # refill too soon
+    "vm_016": "needs_action",  # prescription expired
+    "vm_017": "ready",         # routine relay -> one-click send
+    "vm_018": "needs_action",  # clinical relay -> escalate to provider
     # vm_009 is multi-intent -> two tasks, checked separately.
 }
 
 
 def main() -> int:
-    store, policy, repo = SeedStore(), default_policy(), TasksRepo()
+    store, policy, repo, holds = SeedStore(), default_policy(), TasksRepo(), HoldStore()
     messages = {m.id: m for m in load_messages()}
 
     for m in messages.values():
-        intake_to_tasks(m, repo=repo, store=store, policy=policy, now=REFERENCE_NOW, extract=canned_extract)
+        intake_to_tasks(m, repo=repo, store=store, policy=policy, now=REFERENCE_NOW, holds=holds, extract=canned_extract)
 
     by_msg: dict[str, list] = {}
     for t in repo.list():
@@ -47,9 +54,9 @@ def main() -> int:
             ok = False
             print(f"  MISMATCH {mid}: expected 1 task {want}, got {[t.status.value for t in got]}")
 
-    # Multi-intent: vm_009 -> refill ready + reschedule needs_action.
+    # Multi-intent: vm_009 -> refill ready + reschedule ready (7/9 with Okafor is open).
     nine = sorted((t.type.value, t.status.value) for t in by_msg.get("vm_009", []))
-    if nine != [("refill", "ready"), ("reschedule", "needs_action")]:
+    if nine != [("refill", "ready"), ("reschedule", "ready")]:
         ok = False
         print(f"  MISMATCH vm_009 multi-intent: got {nine}")
 

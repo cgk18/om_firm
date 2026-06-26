@@ -24,8 +24,22 @@ from app.contracts import (
     Urgency,
 )
 from app.drafting import draft_refill, refill_blockers
+from app.drafting.relay import draft_relay, relay_blockers
+from app.drafting.reschedule import draft_reschedule, reschedule_blockers
 from app.eligibility import check_refill
 from app.eligibility.refill import match_med
+from app.eligibility.reschedule import assess_reschedule
+
+
+class _NullHolds:
+    """No-op holds used until a real HoldStore is passed in: never conflicts,
+    never reserves. Lets reschedule run end-to-end before holds.py is finished."""
+
+    def conflicts(self, *a, **k) -> bool:
+        return False
+
+    def reserve(self, *a, **k) -> None:
+        return None
 
 # Keyword backstop under the LLM urgency signal — high recall on purpose: an
 # over-escalation is acceptable, a missed emergency is not. Tunable.
@@ -38,7 +52,8 @@ EMERGENCY_KEYWORDS = [
 _EMERGENCY_RE = re.compile(r"\b(" + "|".join(re.escape(k) for k in EMERGENCY_KEYWORDS) + r")\b")
 
 
-def orchestrate(intent: Intent, message: Message, *, store, policy, now: datetime) -> list[Task]:
+def orchestrate(intent: Intent, message: Message, *, store, policy, now: datetime, holds=None) -> list[Task]:
+    holds = holds or _NullHolds()
     transcript = message.transcript or message.raw_body or ""
     requests = intent.requests or [intent.request]
     stated_name = " ".join(x for x in [intent.first_name, intent.last_name] if x) or "Unknown caller"
@@ -79,11 +94,29 @@ def orchestrate(intent: Intent, message: Message, *, store, policy, now: datetim
             for req in requests
         ]
 
-    # 3. Matched — dispatch each request by type.
-    return [_dispatch(req, intent, message, patient, basis, store=store, policy=policy, now=now) for req in requests]
+    # 3. Patient-status gate — only draft actions for ACTIVE patients. A discharged /
+    #    inactive / deceased record must never produce a ready-to-approve action.
+    if patient.status != "active":
+        blocker = Blocker(
+            code="patient_inactive",
+            label=f"Patient record is '{patient.status}' — verify before acting",
+            detail=f"This patient is marked '{patient.status}' in the system. Do not process without confirming their status.",
+        )
+        return [
+            _task(
+                message_id=message.id, patient_id=patient.id, patient_name=patient.full_name,
+                type=_task_type(req), status=TaskStatus.needs_action, request=req,
+                blockers=[blocker], flagged_reason=blocker.detail,
+                agent_summary=f"{patient.full_name} — record is {patient.status}, verify before acting.",
+            )
+            for req in requests
+        ]
+
+    # 4. Active & matched — dispatch each request by type.
+    return [_dispatch(req, intent, message, patient, basis, store=store, policy=policy, now=now, holds=holds) for req in requests]
 
 
-def _dispatch(req, intent, message, patient, basis, *, store, policy, now) -> Task:
+def _dispatch(req, intent, message, patient, basis, *, store, policy, now, holds) -> Task:
     name = patient.full_name
     if req.type.value == "refill":
         active = store.active_prescriptions_for(patient.id)
@@ -106,23 +139,51 @@ def _dispatch(req, intent, message, patient, basis, *, store, policy, now) -> Ta
             eligibility=eligibility, draft=draft, blockers=blockers, agent_summary=summary,
         )
 
-    # Reschedule / relay / unknown — placeholders until their drafters exist.
     if req.type.value == "reschedule":
-        blocker = Blocker(code="manual_reschedule", label="Handle reschedule manually",
-                          detail="Reschedule drafting is not yet automated.")
-        ttype = TaskType.reschedule
-    elif req.type.value == "message_relay":
-        blocker = Blocker(code="manual_relay", label="Relay to provider manually",
-                          detail="Message relay is out of v1 scope.")
-        ttype = TaskType.escalate
-    else:
-        blocker = Blocker(code="manual_review", label="Manual review",
-                          detail="Request type could not be determined.")
-        ttype = TaskType.escalate
+        assessment = assess_reschedule(request=req, patient=patient, store=store, holds=holds, policy=policy, now=now)
+        blockers = reschedule_blockers(assessment)
+        draft = draft_reschedule(request=req, patient=patient, assessment=assessment, store=store)
+        if assessment.eligibility.eligible and not blockers:
+            status, summary = TaskStatus.ready, f"{name} — reschedule, ready to approve."
+        else:
+            label = blockers[0].label if blockers else "review"
+            status, summary = TaskStatus.needs_action, f"{name} — reschedule, needs action: {label}."
+        task = _task(
+            message_id=message.id, patient_id=patient.id, patient_name=name,
+            type=TaskType.reschedule, status=status, request=req,
+            eligibility=assessment.eligibility, draft=draft, blockers=blockers, agent_summary=summary,
+        )
+        # Reserve the proposed slot against this task so no one else takes it.
+        if assessment.proposed_start and assessment.provider_id:
+            holds.reserve(assessment.provider_id, assessment.proposed_start, assessment.proposed_end, task.id)
+        return task
 
+    if req.type.value == "message_relay":
+        transcript = message.transcript or message.raw_body or ""
+        provider_id = patient.primary_provider_id
+        used_fallback = provider_id is None
+        if used_fallback:
+            od = store.on_duty_provider()
+            provider_id = od.id if od else None
+        draft = draft_relay(request=req, patient=patient, provider_id=provider_id,
+                            transcript=transcript, store=store, used_fallback=used_fallback)
+        blockers = relay_blockers(request=req, transcript=transcript, used_fallback=used_fallback)
+        if blockers:
+            status, summary = TaskStatus.needs_action, f"{name} — relay to provider, needs review: {blockers[0].label}."
+        else:
+            status, summary = TaskStatus.ready, f"{name} — relay to provider, ready to send."
+        return _task(
+            message_id=message.id, patient_id=patient.id, patient_name=name,
+            type=TaskType.message_relay, status=status, request=req,
+            draft=draft, blockers=blockers, agent_summary=summary,
+        )
+
+    # unknown — needs a human.
+    blocker = Blocker(code="manual_review", label="Manual review",
+                      detail="Request type could not be determined.")
     return _task(
         message_id=message.id, patient_id=patient.id, patient_name=name,
-        type=ttype, status=TaskStatus.needs_action, request=req,
+        type=TaskType.escalate, status=TaskStatus.needs_action, request=req,
         blockers=[blocker], agent_summary=f"{name} — {blocker.label.lower()}.",
     )
 
@@ -148,7 +209,11 @@ def _identity_blocker(status: str) -> Blocker:
 
 
 def _task_type(req: ExtractedRequest) -> TaskType:
-    return {"refill": TaskType.refill, "reschedule": TaskType.reschedule}.get(req.type.value, TaskType.escalate)
+    return {
+        "refill": TaskType.refill,
+        "reschedule": TaskType.reschedule,
+        "message_relay": TaskType.message_relay,
+    }.get(req.type.value, TaskType.escalate)
 
 
 def _task(**kwargs) -> Task:

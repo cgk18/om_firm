@@ -124,5 +124,50 @@
     "transcript": "Hi, this is Olivia Park, DOB September 5th, 1975. I need a refill on my Metoprolol. You can reach me at 415-555-0152. Thanks.",
     "_scenario": "Future-appt saves — last visit 2026-01-20 is >4mo, but a visit is booked 2026-08-15 (within a year). Expect: REFILL / ready.",
     "_expected_patient": "10012"
+  },
+  {
+    "id": "vm_014",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T12:25:00Z",
+    "raw_ref": "seed/audio/vm_014.wav",
+    "transcript": "Hi, this is Gregory Hale, date of birth April 25th, 1968. I'd like to refill my Lisinopril. My number is 415-555-0153. Thanks.",
+    "_scenario": "Patient-status gate — Gregory is discharged. Expect: needs_action, blocker patient_inactive, no draft.",
+    "_expected_patient": "10013"
+  },
+  {
+    "id": "vm_015",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T12:40:00Z",
+    "raw_ref": "seed/audio/vm_015.wav",
+    "transcript": "Hi, this is Brian Lee, date of birth July 19th, 1983. I wanted to refill my Lisinopril. My number is 415-555-0154. Thank you.",
+    "_scenario": "Refill too soon — filled 2026-06-10 with a 90-day supply (lots left). Expect: REFILL / needs_action, blocker refill_too_soon.",
+    "_expected_patient": "10014"
+  },
+  {
+    "id": "vm_016",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T12:55:00Z",
+    "raw_ref": "seed/audio/vm_016.wav",
+    "transcript": "Hello, Carol White calling, date of birth December 1st, 1959. I need a refill on my atorvastatin. You can reach me at 415-555-0156. Thanks.",
+    "_scenario": "Prescription expired — valid_until 2026-03-01 is past. Expect: REFILL / needs_action, blocker prescription_expired.",
+    "_expected_patient": "10015"
+  },
+  {
+    "id": "vm_017",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T13:10:00Z",
+    "raw_ref": "seed/audio/vm_017.wav",
+    "transcript": "Hi, this is Henry Adams, date of birth March 8th, 1972. Could you let Dr. Patel know I'll be traveling next month and might miss our usual check-in? My number is 415-555-0157. Thanks.",
+    "_scenario": "Routine relay — logistics, no clinical content. Expect: MESSAGE_RELAY / ready (one-click send).",
+    "_expected_patient": "10016"
+  },
+  {
+    "id": "vm_018",
+    "channel": "voicemail",
+    "received_at": "2026-06-25T13:25:00Z",
+    "raw_ref": "seed/audio/vm_018.wav",
+    "transcript": "Hi, Diane Cooper here, date of birth October 14th, 1980. I wanted to let the doctor know the new blood pressure medication is giving me a bad reaction — I've had nausea and a rash. Please have them call me at 415-555-0158.",
+    "_scenario": "Clinical relay — medication reaction (nausea, rash). Sub-emergency. Expect: MESSAGE_RELAY / needs_action, blocker clinical_review (escalate to provider).",
+    "_expected_patient": "10017"
   }
 ]

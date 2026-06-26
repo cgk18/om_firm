@@ -18,6 +18,47 @@ No step writes to an EHR or sends a patient message automatically. Every
 outbound (the refill, the booking, the patient SMS) is a **draft a human acts
 on**.
 
+## Current state (2026-06-25) — for the dashboard handoff
+
+**Built & tested (backend, offline on seeded data):** intake (Claude Haiku,
+prompt-and-parse) → orchestrator → eligibility → drafting → in-memory task queue,
+with approve / dismiss / edit / reopen. All three task types (refill, reschedule,
+message relay) and cross-cutting gates (emergency hard-stop, two-factor identity
+match, patient-status gate, multi-intent → multiple tasks). 19 seeded scenarios,
+all green via `app/test_slice.py`.
+
+**Not built:** real audio transcription (runs off pre-filled transcripts); **a web
+API**; the dashboard.
+
+### What the dashboard consumes — the `Task` (see `backend/app/contracts/`)
+- `id`, `message_id`, `patient_id`, `patient_name`
+- `type`: `refill | reschedule | message_relay | escalate`
+- `status` (the queue lanes): `ready` · `needs_action` · `urgent` · `approved` · `dismissed`
+- `agent_summary` — one-line human summary
+- `eligibility`: `{ eligible, checks: [{name, passed, detail}], flagged_reason }`
+- `draft` (or null): `{ structured (Refill/Reschedule/MessageRelay action),
+  rendered (the text staff read/edit/copy), confidence, editable }`
+- `blockers`: `[{code, label, detail}]` — the "ACTION NEEDED" items (empty = ready)
+- review fields: `created_at`, `reviewed_at`, `approved_at`, `rejected_at`,
+  `reviewed_by`, `reviewer_note`
+
+The **read-only patient-context card** is built from the seed store, not the Task:
+`Patient` (name, DOB, phone, insurance, last_visit, status, primary provider) +
+their active `Prescription`s + `Appointment`s. The **transcript** lives on the
+`Message` (join via `task.message_id`).
+
+### The API the dashboard needs (build this first — it's thin)
+There is no HTTP layer yet. The backend exposes plain functions:
+- `app.tasks.intake_to_tasks(message, repo=, store=, policy=, now=, holds=, extract=)`
+  → runs the pipeline, stores tasks.
+- `repo.list()` / `repo.get(id)` → read the queue.
+- `app.tasks.apply_decision(repo, task_id, "approve"|"dismiss"|"edit"|"reopen",
+  note=, edited_text=)` → the staff actions (approve marks `approved`, executes
+  nothing; `edit` replaces the draft text / relay body).
+Wrap these in FastAPI: `GET /tasks` (joined with message transcript + patient
+card), `GET /tasks/{id}`, `POST /tasks/{id}/decision`. Demo state is in-memory
+(resets per run); the repo is behind an interface so a real DB drops in later.
+
 ## Carry-over map (from the public hackathon repo)
 The hackathon repo (`Berkeley-AI-Hackathon`, public) is reference-only. We do
 not import its code wholesale — we retype the parts worth keeping under the new
@@ -63,23 +104,29 @@ listen→understand→check→draft half intact:
 - **EHR / Records / Appointments → read-only seeded data** (simulates the Tier-2
   vision; never written to).
 - **The "action" is a draft object**, not an executed side effect.
-- **Message relay parked** (v1 = refills + reschedules).
 - **Audit / Action DB → task history** (no record of executed external actions).
 
-## Module layout (v1 rebuild)
+(Message relay was originally parked but is now built — see Current state.)
+
+## Module layout (as built)
 ```
 backend/app/
-  contracts/        # shared schemas: message, task, draft, patient, clinic_policy
+  contracts/        # shared schemas: enums, message, intent, patient, draft, task, clinic_policy
   pipeline/
-    transcription.py  # Deepgram (retype)
-    intake.py         # Claude extraction (retype the prompt)
-    orchestrator.py   # linear route-by-type dispatch
-    drafting/         # NEW — builds the draft (replaces auto-execute)
-  eligibility/        # deterministic, policy-driven checks
-  tasks/              # repo + service (create / approve / reject / edit) — NO executor
-  seed/               # seeded "EHR" JSON + demo voicemails
-dashboard/            # Next.js queue + history + read-only patient card
+    intake.py         # Claude Haiku extraction (prompt-and-parse -> Intent)
+    orchestrator.py   # linear spine: emergency -> identity -> status gate -> dispatch
+  eligibility/        # refill.py, reschedule.py — deterministic, policy-driven checks
+  drafting/           # refill.py, reschedule.py, relay.py — Draft + Blockers per type
+  scheduling/         # holds.py — in-memory slot reservations
+  tasks/              # repo.py (in-memory) + service.py (create / approve / dismiss / edit) — NO executor
+  seed/               # seeded "EHR" JSON (patients, prescriptions, appointments, providers,
+                      #   drug_conflicts, holidays) + demo voicemails
+  eval/               # golden intents + scorer + model eval runner
+  test_slice.py       # end-to-end: 19 messages -> task queue
+dashboard/            # NOT BUILT YET — Next.js queue + history + read-only patient card
 ```
+Not built: `transcription.py` (Deepgram) — the pipeline runs off pre-filled
+transcripts; wire real audio later. No API layer yet (see Current state below).
 
 ## Data model direction (v1)
 Centered on the message/task, not patient records:
@@ -135,12 +182,12 @@ Eligibility checks read thresholds / lists / toggles from a per-clinic
 knobs are configurable. Ship a sensible **default policy**; clients can change
 values (a strong sales moment — "set your own refill policy, no code").
 ```
-ClinicPolicy (example knobs):
-  refill_visit_window_days        # e.g. 90 / 180 / 365
-  accepted_insurance: [...]
-  controlled_substance_excluded
-  require_dosage_match
-  reschedule_max_lead_days
+ClinicPolicy (actual knobs):
+  refill_recent_visit_days / refill_future_visit_window_days
+  conflict_established_days / controlled_substance_excluded
+  accepted_insurance: [...] / early_refill_buffer_days
+  appointment_duration_minutes / default_working_hours
+  reschedule_search_days / reschedule_far_out_days / reschedule_repeat_flag_threshold
 ```
 **Level 1 only** — parameterize the rules we already have. **Not** a general rules
 engine / client-authored rule types (Level 2 — deferred; that's the "complicates

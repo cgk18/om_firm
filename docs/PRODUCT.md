@@ -50,7 +50,8 @@ Positioning statement:
   No live PHI yet — demo runs on seeded data.
 - **Draft-and-route only.** No EHR writeback. The "action" is a clean,
   ready-to-execute draft a human acts on in their own system.
-- **Lead task types:** prescription refills + reschedules. Escalation =
+- **Lead task types:** prescription refills + reschedules + message relay
+  (un-parked during the build — see DECISIONS 2026-06-25). Escalation =
   kick-to-human path.
 - **Channel-agnostic intake:** voicemail (Deepgram STT) as hero; email/other
   through the same parsing pipeline.
@@ -62,8 +63,9 @@ Positioning statement:
 - EHR writeback / integration (needs per-vendor research first — see
   ARCHITECTURE.md "Open research").
 - Auto-sending SMS/email to patients (becomes a *drafted* message staff approve).
-- Live telephony ingestion (demo uses uploaded audio).
-- Message relay as a lead type, daily summary digest.
+- Live telephony ingestion (demo uses uploaded audio) + real audio transcription
+  (pipeline currently runs on pre-filled transcripts).
+- Daily summary digest; proactive "patient projected to run out" panel sweep.
 - Real HIPAA/BAA posture (required before any pilot with live PHI, not for the
   demo).
 

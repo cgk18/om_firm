@@ -1,4 +1,4 @@
 [
-  { "id": "5001", "name": "Dr. Anita Patel" },
-  { "id": "5002", "name": "Dr. James Okafor" }
+  { "id": "5001", "name": "Dr. Anita Patel", "covering_provider_id": "5002" },
+  { "id": "5002", "name": "Dr. James Okafor", "covering_provider_id": "5001" }
 ]

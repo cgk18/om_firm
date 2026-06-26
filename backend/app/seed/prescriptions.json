@@ -142,5 +142,45 @@
     "prescribed_date": "2024-05-01",
     "last_filled": "2026-02-01",
     "controlled": false
+  },
+  {
+    "id": "30013",
+    "patient_id": "10013",
+    "provider_id": "5001",
+    "medication_name": "Lisinopril",
+    "dosage": "10 mg",
+    "instructions": "Take one tablet by mouth once daily",
+    "active": true,
+    "prescribed_date": "2022-01-10",
+    "last_filled": "2025-04-10",
+    "controlled": false
+  },
+  {
+    "id": "30014",
+    "patient_id": "10014",
+    "provider_id": "5001",
+    "medication_name": "Lisinopril",
+    "dosage": "10 mg",
+    "instructions": "Take one tablet by mouth once daily",
+    "active": true,
+    "prescribed_date": "2024-01-01",
+    "last_filled": "2026-06-10",
+    "days_supply": 90,
+    "valid_until": "2027-01-01",
+    "controlled": false
+  },
+  {
+    "id": "30015",
+    "patient_id": "10015",
+    "provider_id": "5001",
+    "medication_name": "Atorvastatin",
+    "dosage": "40 mg",
+    "instructions": "Take one tablet by mouth at bedtime",
+    "active": true,
+    "prescribed_date": "2023-06-01",
+    "last_filled": "2026-02-01",
+    "days_supply": 30,
+    "valid_until": "2026-03-01",
+    "controlled": false
   }
 ]

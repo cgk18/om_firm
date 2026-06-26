@@ -1,22 +1,16 @@
-"""Reschedule eligibility + slot-finding.   ★ YOUR HOMEWORK ★
+"""Reschedule eligibility + slot-finding — deterministic, policy-driven, auditable.
 
-Mirrors eligibility/refill.py: deterministic, policy-driven, auditable, reading
-the chart through `store`. Difference: it also FINDS a slot, so the result
-carries a proposed time. Build bottom-up in the order the functions appear here;
-each has its TODOs inline. Keep these pure — do NOT reserve holds here (the
-orchestrator does that once a task id exists); these only READ holds.
-
-Rules recap: default hours 08:30–17:00 Mon–Fri (Provider.working_hours overrides);
-holidays from store.holidays; duration = policy.appointment_duration_minutes;
+Reads the chart through `store`; only READS holds (the orchestrator reserves once
+a task id exists). Rules: default hours 08:30–17:00 Mon–Fri (Provider.working_hours
+overrides); holidays from store.holidays; duration = appointment_duration_minutes;
 requested slot taken -> propose nearest + flag; primary full -> covering provider;
-slot > policy.reschedule_far_out_days out -> "far out" flag; search window =
-policy.reschedule_search_days.
+slot > reschedule_far_out_days out -> "far out" flag; window = reschedule_search_days.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 
 from app.contracts import (
     Appointment,
@@ -28,6 +22,8 @@ from app.contracts import (
 )
 
 WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+_TIME_OF_DAY_HOUR = {"morning": 9, "afternoon": 13, "evening": 16}
+_STEP_MINUTES = 15
 
 
 @dataclass
@@ -41,17 +37,21 @@ class RescheduleAssessment:
     switched_provider: bool = False
     far_out: bool = False
     is_new_booking: bool = False
+    repeated_reschedule: bool = False  # appointment moved >= threshold times already
 
 
 def resolve_requested_window(request: ExtractedRequest, policy: ClinicPolicy) -> tuple[datetime, datetime] | None:
-    # TODO: take request.preferred_times[0]; if there are none -> return None.
-    # TODO: build `start` from its .date plus a time:
-    #         - if .start_time ("HH:MM") set -> use it
-    #         - elif .time_of_day -> morning 09:00 / afternoon 13:00 / evening 16:00 / else 09:00
-    #       make it tz-aware: datetime(y, m, d, hh, mm, tzinfo=timezone.utc)
-    # TODO: end = start + timedelta(minutes=policy.appointment_duration_minutes)
-    # TODO: return (start, end)
-    raise NotImplementedError
+    """preferred_times[0] -> (start, end). None if no day was given."""
+    pts = request.preferred_times
+    if not pts or pts[0].date is None:
+        return None
+    pt = pts[0]
+    if pt.start_time:
+        hour, minute = (int(x) for x in pt.start_time.split(":"))
+    else:
+        hour, minute = _TIME_OF_DAY_HOUR.get(pt.time_of_day.value, 9), 0
+    start = datetime.combine(pt.date, time(hour, minute), tzinfo=timezone.utc)
+    return start, start + timedelta(minutes=policy.appointment_duration_minutes)
 
 
 def slot_is_available(
@@ -64,17 +64,28 @@ def slot_is_available(
     policy: ClinicPolicy,
     exclude_appointment_id: str | None = None,
 ) -> bool:
-    # TODO: holiday  -> if start.date().isoformat() in store.holidays: return False
-    # TODO: hours    -> hours = store.working_hours_for(provider_id, policy)
-    #                   key = WEEKDAY_KEYS[start.weekday()]; if key not in hours: return False (closed)
-    #                   work_start/work_end = that date at hours[key][0] / [1]
-    #                   if start < work_start or end > work_end: return False
-    # TODO: booked   -> for a in store.scheduled_for_provider(provider_id):
-    #                       if a.id == exclude_appointment_id: continue
-    #                       if start < a.end_time and end > a.start_time: return False  (overlap)
-    # TODO: held     -> if holds.conflicts(provider_id, start, end): return False
-    # TODO: return True
-    raise NotImplementedError
+    # holiday
+    if start.date().isoformat() in store.holidays:
+        return False
+    # provider working hours for that weekday
+    hours = store.working_hours_for(provider_id, policy)
+    key = WEEKDAY_KEYS[start.weekday()]
+    if key not in hours:
+        return False  # closed that day (e.g. weekend)
+    work_start = _at(start, hours[key][0])
+    work_end = _at(start, hours[key][1])
+    if start < work_start or end > work_end:
+        return False
+    # overlap with a booked appointment
+    for a in store.scheduled_for_provider(provider_id):
+        if a.id == exclude_appointment_id:
+            continue
+        if start < a.end_time and end > a.start_time:
+            return False
+    # overlap with an active hold
+    if holds.conflicts(provider_id, start, end):
+        return False
+    return True
 
 
 def find_next_available(
@@ -86,22 +97,29 @@ def find_next_available(
     policy: ClinicPolicy,
     exclude_appointment_id: str | None = None,
 ) -> tuple[datetime, datetime] | None:
-    # TODO: duration = timedelta(minutes=policy.appointment_duration_minutes)
-    # TODO: step forward from `start` in 15-min increments, up to
-    #       policy.reschedule_search_days days. For each candidate_start:
-    #         candidate_end = candidate_start + duration
-    #         if slot_is_available(candidate_start, candidate_end, provider_id, store=store,
-    #                              holds=holds, policy=policy, exclude_appointment_id=exclude_appointment_id):
-    #             return (candidate_start, candidate_end)
-    # TODO: nothing found in the window -> return None
-    # Hint: let slot_is_available reject holidays/off-hours/overlaps; you just sweep times.
-    raise NotImplementedError
+    """Soonest available slot at or after `start`, within reschedule_search_days."""
+    duration = timedelta(minutes=policy.appointment_duration_minutes)
+    midnight = start.replace(hour=0, minute=0, second=0, microsecond=0)
+    for day_offset in range(policy.reschedule_search_days):
+        day = midnight + timedelta(days=day_offset)
+        for minutes in range(0, 24 * 60, _STEP_MINUTES):
+            cand_start = day + timedelta(minutes=minutes)
+            if cand_start < start:
+                continue
+            cand_end = cand_start + duration
+            if slot_is_available(
+                cand_start, cand_end, provider_id,
+                store=store, holds=holds, policy=policy,
+                exclude_appointment_id=exclude_appointment_id,
+            ):
+                return cand_start, cand_end
+    return None
 
 
 def appointment_to_move(patient: Patient, *, store, now: datetime) -> Appointment | None:
-    # TODO: upcoming = store.future_appointments(patient.id, now=now)
-    # TODO: return the earliest by .start_time, or None (None -> it's a new booking).
-    raise NotImplementedError
+    """Patient's soonest upcoming appointment, or None (-> new booking)."""
+    upcoming = store.future_appointments(patient.id, now=now)
+    return min(upcoming, default=None, key=lambda a: a.start_time)
 
 
 def assess_reschedule(
@@ -113,46 +131,84 @@ def assess_reschedule(
     policy: ClinicPolicy,
     now: datetime,
 ) -> RescheduleAssessment:
-    checks: list[EligibilityCheck] = []
+    moving = appointment_to_move(patient, store=store, now=now)
+    is_new_booking = moving is None
+    exclude_id = moving.id if moving else None
+    repeated = bool(moving) and moving.times_rescheduled >= policy.reschedule_repeat_flag_threshold
 
-    # TODO 1 (which appt / which provider):
-    #   moving = appointment_to_move(patient, store=store, now=now)
-    #   is_new_booking = moving is None
-    #   provider_id = moving.provider_id if moving else <new-booking provider — you decided to
-    #                 flag for manual selection; pick how you represent that>
-    #   exclude_id = moving.id if moving else None
+    if moving:
+        provider_id = moving.provider_id
+    else:
+        # New booking: infer the provider from their most recent completed visit.
+        last = store.last_completed_appointment(patient.id, now=now)
+        provider_id = last.provider_id if last else None
 
-    # TODO 2 (requested window):
-    #   window = resolve_requested_window(request, policy)
-    #   if window is None: no time requested -> propose soonest via find_next_available(now, ...) and
-    #                      record a check noting "no time requested".
+    if provider_id is None:
+        return _not_eligible("select_provider", "No appointment or prior provider on file — select a provider manually.", is_new_booking=is_new_booking)
 
-    # TODO 3 (find the slot):
-    #   if window and slot_is_available(*window, provider_id, store=store, holds=holds,
-    #                                   policy=policy, exclude_appointment_id=exclude_id):
-    #       proposed = window; requested_was_available = True
-    #   else:
-    #       requested_was_available = False
-    #       proposed = find_next_available(window[0] if window else now, provider_id, ...)
-    #       if proposed is None:                       # primary full -> try covering
-    #           cov = store.provider(provider_id).covering_provider_id if provider_id else None
-    #           if cov:
-    #               proposed = find_next_available(window[0] if window else now, cov, ...)
-    #               if proposed: switched_provider = True; provider_id = cov
+    window = resolve_requested_window(request, policy)
+    switched_provider = False
 
-    # TODO 4 (no slot anywhere):
-    #   if proposed is None -> append a failing EligibilityCheck("slot_found", False, ...) and
-    #   return a not-eligible RescheduleAssessment (no proposed_start). Stop here.
+    if window and slot_is_available(*window, provider_id, store=store, holds=holds, policy=policy, exclude_appointment_id=exclude_id):
+        proposed = window
+        requested_was_available = True
+    else:
+        requested_was_available = False
+        search_from = window[0] if window else now
+        proposed = find_next_available(search_from, provider_id, store=store, holds=holds, policy=policy, exclude_appointment_id=exclude_id)
+        if proposed is None:
+            cover = store.provider(provider_id).covering_provider_id if store.provider(provider_id) else None
+            if cover:
+                proposed = find_next_available(search_from, cover, store=store, holds=holds, policy=policy)
+                if proposed:
+                    switched_provider = True
+                    provider_id = cover
 
-    # TODO 5 (flags + checks):
-    #   far_out = (proposed[0].date() - now.date()).days > policy.reschedule_far_out_days
-    #   append named checks (requested_time_available, slot_found, within_window) so the dashboard
-    #   shows the same audit list refills get. eligible = all(c.passed for c in checks).
+    if proposed is None:
+        return _not_eligible("no_slot_available", f"No open slot within {policy.reschedule_search_days} days.", is_new_booking=is_new_booking)
 
-    # TODO 6 (return):
-    #   return RescheduleAssessment(
-    #       eligibility=EligibilityResult(eligible=..., checks=checks, flagged_reason=...),
-    #       proposed_start=proposed[0], proposed_end=proposed[1], provider_id=provider_id,
-    #       cancel_appointment_id=moving.id if moving else None,
-    #       requested_was_available=..., switched_provider=..., far_out=far_out, is_new_booking=is_new_booking)
-    raise NotImplementedError
+    far_out = (proposed[0].date() - now.date()).days > policy.reschedule_far_out_days
+
+    checks = [
+        EligibilityCheck(name="slot_found", passed=True, detail=f"Proposed {proposed[0]:%a %b %d %H:%M}."),
+        EligibilityCheck(name="requested_time_available", passed=requested_was_available,
+                         detail="Requested time is open." if requested_was_available else "Requested time was taken — proposed the nearest slot."),
+        EligibilityCheck(name="primary_provider_available", passed=not switched_provider,
+                         detail="Original provider available." if not switched_provider else "Original provider full — using covering provider."),
+        EligibilityCheck(name="within_window", passed=not far_out,
+                         detail="Within a month." if not far_out else "More than a month out."),
+        EligibilityCheck(name="reschedule_frequency", passed=not repeated,
+                         detail=(f"This appointment has already been rescheduled {moving.times_rescheduled} times — review for over-rescheduling."
+                                 if repeated else "Reschedule frequency is normal.")),
+    ]
+    flagged = "; ".join(c.detail for c in checks if not c.passed) or None
+
+    return RescheduleAssessment(
+        eligibility=EligibilityResult(eligible=True, checks=checks, flagged_reason=flagged),
+        proposed_start=proposed[0],
+        proposed_end=proposed[1],
+        provider_id=provider_id,
+        cancel_appointment_id=exclude_id,
+        requested_was_available=requested_was_available,
+        switched_provider=switched_provider,
+        far_out=far_out,
+        is_new_booking=is_new_booking,
+        repeated_reschedule=repeated,
+    )
+
+
+# ----------------------------------------------------------------- helpers ----
+def _at(day: datetime, hhmm: str) -> datetime:
+    hour, minute = (int(x) for x in hhmm.split(":"))
+    return day.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+
+def _not_eligible(code: str, detail: str, *, is_new_booking: bool) -> RescheduleAssessment:
+    return RescheduleAssessment(
+        eligibility=EligibilityResult(
+            eligible=False,
+            checks=[EligibilityCheck(name=code, passed=False, detail=detail)],
+            flagged_reason=detail,
+        ),
+        is_new_booking=is_new_booking,
+    )

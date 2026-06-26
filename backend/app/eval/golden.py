@@ -164,6 +164,54 @@ GOLDEN: dict[str, Intent] = {
         date_of_birth=date(1975, 9, 5),
         phone_number="415-555-0152",
     ),
+    # Discharged patient -> status gate (no draft).
+    "vm_014": _one(
+        ExtractedRequest(type=RequestType.refill, orders=["Lisinopril"], urgency_signal=Urgency.routine),
+        first_name="Gregory",
+        last_name="Hale",
+        date_of_birth=date(1968, 4, 25),
+        phone_number="415-555-0153",
+    ),
+    # Refill too soon (plenty of supply left).
+    "vm_015": _one(
+        ExtractedRequest(type=RequestType.refill, orders=["Lisinopril"], urgency_signal=Urgency.routine),
+        first_name="Brian",
+        last_name="Lee",
+        date_of_birth=date(1983, 7, 19),
+        phone_number="415-555-0154",
+    ),
+    # Prescription expired.
+    "vm_016": _one(
+        ExtractedRequest(type=RequestType.refill, orders=["Atorvastatin"], urgency_signal=Urgency.routine),
+        first_name="Carol",
+        last_name="White",
+        date_of_birth=date(1959, 12, 1),
+        phone_number="415-555-0156",
+    ),
+    # Routine message relay -> ready.
+    "vm_017": _one(
+        ExtractedRequest(
+            type=RequestType.message_relay,
+            details="Let Dr. Patel know the patient will be traveling next month and may miss the usual check-in.",
+            urgency_signal=Urgency.routine,
+        ),
+        first_name="Henry",
+        last_name="Adams",
+        date_of_birth=date(1972, 3, 8),
+        phone_number="415-555-0157",
+    ),
+    # Clinical message relay (medication reaction) -> needs_action.
+    "vm_018": _one(
+        ExtractedRequest(
+            type=RequestType.message_relay,
+            details="Patient reports a reaction to the new blood pressure medication — nausea and a rash.",
+            urgency_signal=Urgency.routine,
+        ),
+        first_name="Diane",
+        last_name="Cooper",
+        date_of_birth=date(1980, 10, 14),
+        phone_number="415-555-0158",
+    ),
 }
 
 

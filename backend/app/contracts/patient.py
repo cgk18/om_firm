@@ -29,6 +29,8 @@ class Prescription(BaseModel):
     active: bool = True
     prescribed_date: date | None = None
     last_filled: date | None = None
+    days_supply: int = 30  # days a fill lasts — used to spot a too-early refill
+    valid_until: date | None = None  # script expiration; None = unknown/skip the check
     controlled: bool = False
 
 
@@ -51,6 +53,7 @@ class Appointment(BaseModel):
     start_time: datetime
     end_time: datetime
     status: str = "scheduled"  # scheduled | completed | cancelled
+    times_rescheduled: int = 0  # how many times this appointment has already been moved
     notes: str | None = None  # free-text provider notes (shown on the card)
     approved_meds: list[ApprovedMed] = Field(default_factory=list)  # structured dosage approvals
 
@@ -70,6 +73,8 @@ class Patient(BaseModel):
     phone: str | None = None
     insurance_plan: str | None = None
     last_visit: date | None = None
+    status: str = "active"  # active | inactive | discharged | deceased | transferred
+    primary_provider_id: str | None = None  # the patient's usual provider
 
     @property
     def full_name(self) -> str:

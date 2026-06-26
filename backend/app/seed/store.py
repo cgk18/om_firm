@@ -57,14 +57,21 @@ class SeedStore:
         self.conflict_pairs: list[frozenset[str]] = [
             frozenset(m.lower() for m in pair) for pair in raw["conflicts"]
         ]
-        # TODO (reschedule): load clinic holidays into a set of "YYYY-MM-DD" strings:
-        #   self.holidays = set(json.loads((SEED_DIR / "holidays.json").read_text())["holidays"])
+        # Clinic closed-days as a set of "YYYY-MM-DD" strings (reschedule skips these).
+        self.holidays: set[str] = set(
+            json.loads((SEED_DIR / "holidays.json").read_text(encoding="utf-8"))["holidays"]
+        )
 
     def patient(self, patient_id: str) -> Patient | None:
         return next((p for p in self.patients if p.id == patient_id), None)
 
     def provider(self, provider_id: str) -> Provider | None:
         return next((p for p in self.providers if p.id == provider_id), None)
+
+    def on_duty_provider(self) -> Provider | None:
+        """Fallback recipient when a patient has no usual provider on file —
+        'someone in the office that day'. Demo: the first provider."""
+        return self.providers[0] if self.providers else None
 
     def prescriptions_for(self, patient_id: str) -> list[Prescription]:
         return [rx for rx in self.prescriptions if rx.patient_id == patient_id]
@@ -109,13 +116,13 @@ class SeedStore:
                 result |= pair - {med}
         return result
 
-    # TODO (reschedule): a provider's effective hours — their override, else clinic default.
-    #   def working_hours_for(self, provider_id, policy):
-    #       p = self.provider(provider_id)
-    #       return p.working_hours if (p and p.working_hours) else policy.default_working_hours
-    #
-    # TODO (reschedule, seed): add "covering_provider_id" to each provider in providers.json
-    #   (5001 -> "5002", 5002 -> "5001") so the "primary full -> covering" branch is testable.
+    def working_hours_for(self, provider_id: str, policy) -> dict[str, list[str]]:
+        """A provider's effective hours — their own override, else the clinic default."""
+        p = self.provider(provider_id)
+        return p.working_hours if (p and p.working_hours) else policy.default_working_hours
+
+    # NOTE (still yours to do — seed data): add "covering_provider_id" to each provider in
+    # providers.json (5001 -> "5002", 5002 -> "5001") so the "primary full -> covering" branch works.
 
     def resolve_patient(self, first_name, last_name, date_of_birth, phone) -> tuple[Patient | None, str, str | None]:
         """Two-factor identity resolution. Auto-match only when >= 2 of

@@ -8,7 +8,14 @@ policy as read-only/config inputs.
 from __future__ import annotations
 
 from .clinic_policy import ClinicPolicy, default_policy
-from .draft import Blocker, Draft, DraftAction, RefillAction, RescheduleAction
+from .draft import (
+    Blocker,
+    Draft,
+    DraftAction,
+    MessageRelayAction,
+    RefillAction,
+    RescheduleAction,
+)
 from .enums import (
     Channel,
     RequestType,
@@ -48,6 +55,7 @@ __all__ = [
     "DraftAction",
     "RefillAction",
     "RescheduleAction",
+    "MessageRelayAction",
     # task
     "Task",
     "EligibilityResult",

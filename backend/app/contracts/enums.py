@@ -30,6 +30,7 @@ class TaskType(str, Enum):
 
     refill = "refill"
     reschedule = "reschedule"
+    message_relay = "message_relay"
     escalate = "escalate"
 
 

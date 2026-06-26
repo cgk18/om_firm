@@ -18,7 +18,7 @@ real EHR later means swapping the store, not this logic.
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.contracts import (
     ClinicPolicy,
@@ -120,6 +120,27 @@ def check_refill(
 
         # 6. Drug conflict (established >= threshold is tolerated).
         checks.append(_conflict_check(rx, active, store, policy, now))
+
+        # 7. Refill timing — not requested too early (still has plenty of supply).
+        if rx.last_filled is not None:
+            days_left = (rx.last_filled + timedelta(days=rx.days_supply) - now.date()).days
+            too_soon = days_left > policy.early_refill_buffer_days
+            checks.append(EligibilityCheck(
+                name="refill_timing",
+                passed=not too_soon,
+                detail=(f"~{days_left} days of supply remain — refill requested early." if too_soon
+                        else "Refill timing is appropriate."),
+            ))
+
+        # 8. Prescription not expired (script still valid).
+        if rx.valid_until is not None:
+            expired = rx.valid_until < now.date()
+            checks.append(EligibilityCheck(
+                name="prescription_current",
+                passed=not expired,
+                detail=(f"Prescription expired {rx.valid_until} — needs provider renewal." if expired
+                        else "Prescription is current."),
+            ))
 
     # 3. Visit requirement (independent of the specific script).
     checks.append(_visit_check(patient, store, policy, now))

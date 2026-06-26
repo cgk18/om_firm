@@ -23,6 +23,13 @@ carry-over map in `docs/ARCHITECTURE.md`). This keeps the rebuild clean and the
 IP unambiguous.
 
 ## v1 lead scope
-Refills + reschedules. Escalation = kick-to-human. Channel-agnostic intake
-(voicemail hero + email same pipeline). Read-only patient-context card in the
-dashboard from seeded data.
+Refills + reschedules + message relay (relay un-parked during the build).
+Escalation = kick-to-human. Channel-agnostic intake (voicemail hero + email same
+pipeline). Read-only patient-context card in the dashboard from seeded data.
+
+## Build state (2026-06-25)
+Backend pipeline built & tested offline (intake → orchestrator → eligibility →
+drafting → in-memory task queue), all three task types. No API or dashboard yet.
+See `docs/ARCHITECTURE.md` → "Current state" for the Task contract + the thin API
+the dashboard needs. `docs/DECISIONS.md` is the running rationale log — append to
+it; don't re-litigate.

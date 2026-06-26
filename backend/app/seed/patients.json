@@ -106,5 +106,53 @@
     "phone": "(415) 555-0152",
     "insurance_plan": "UnitedHealthcare",
     "last_visit": "2026-01-20"
+  },
+  {
+    "id": "10013",
+    "first_name": "Gregory",
+    "last_name": "Hale",
+    "date_of_birth": "1968-04-25",
+    "phone": "(415) 555-0153",
+    "insurance_plan": "Aetna",
+    "last_visit": "2025-04-10",
+    "status": "discharged"
+  },
+  {
+    "id": "10014",
+    "first_name": "Brian",
+    "last_name": "Lee",
+    "date_of_birth": "1983-07-19",
+    "phone": "(415) 555-0154",
+    "insurance_plan": "Aetna",
+    "last_visit": "2026-05-15"
+  },
+  {
+    "id": "10015",
+    "first_name": "Carol",
+    "last_name": "White",
+    "date_of_birth": "1959-12-01",
+    "phone": "(415) 555-0156",
+    "insurance_plan": "Cigna",
+    "last_visit": "2026-05-20"
+  },
+  {
+    "id": "10016",
+    "first_name": "Henry",
+    "last_name": "Adams",
+    "date_of_birth": "1972-03-08",
+    "phone": "(415) 555-0157",
+    "insurance_plan": "Aetna",
+    "last_visit": "2026-04-22",
+    "primary_provider_id": "5001"
+  },
+  {
+    "id": "10017",
+    "first_name": "Diane",
+    "last_name": "Cooper",
+    "date_of_birth": "1980-10-14",
+    "phone": "(415) 555-0158",
+    "insurance_plan": "UnitedHealthcare",
+    "last_visit": "2026-06-12",
+    "primary_provider_id": "5002"
   }
 ]
