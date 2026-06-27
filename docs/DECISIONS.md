@@ -2,6 +2,18 @@
 
 Running log of decisions + *why*, so we never re-litigate. Newest at top.
 
+## 2026-06-26 — Deepgram transcription + audio voicemail path
+- **`pipeline/transcription.py`** wraps Deepgram SDK 7.3.1
+  (`client.listen.v1.media.transcribe_file`), model **`nova-3-medical`** — medical-
+  tuned so it gets drug names right and smart-formats dates. Verified end-to-end.
+- **`POST /ingest/audio`** (multipart) → transcribe → real Claude intake → task,
+  keeping the audio **in-memory** for playback via **`GET /audio/{message_id}`**;
+  `TaskView.audio_url` is set for uploaded voicemails. The full "record a voicemail
+  → AI drafts a task → reviewer plays the original" demo moment.
+  **Why:** "voicemail hero" pitch is far stronger with real audio than pasted text.
+  Demo audio = the user's own recordings (WAV/m4a/mp3; AIFF not accepted).
+  Added `python-multipart` for uploads.
+
 ## 2026-06-25 — Demo API
 - **Thin FastAPI layer** (`backend/app/main.py`) over the in-memory pipeline.
   Endpoints: `GET /tasks`, `GET /tasks/{id}`, `POST /tasks/{id}/decision`,

@@ -141,6 +141,8 @@ export interface TaskView {
   task: Task;
   transcript: string | null;
   patient: PatientCard | null;
+  /** Set when the message was an uploaded voicemail — playback source. */
+  audio_url?: string | null;
 }
 
 /** Staff decision verbs the API accepts (POST /tasks/{id}/decision). */

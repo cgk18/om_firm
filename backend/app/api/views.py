@@ -37,4 +37,5 @@ def task_view(task: Task, state) -> TaskView:
     transcript = (msg.transcript or msg.raw_body) if msg else None
     patient = state.store.patient(task.patient_id) if task.patient_id else None
     card = patient_card(patient, state.store) if patient else None
-    return TaskView(task=task, transcript=transcript, patient=card)
+    audio_url = f"/audio/{task.message_id}" if task.message_id in state.audio else None
+    return TaskView(task=task, transcript=transcript, patient=card, audio_url=audio_url)

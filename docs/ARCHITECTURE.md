@@ -27,8 +27,8 @@ message relay) and cross-cutting gates (emergency hard-stop, two-factor identity
 match, patient-status gate, multi-intent → multiple tasks). 19 seeded scenarios,
 all green via `app/test_slice.py`.
 
-**Not built:** real audio transcription (Deepgram — runs off pre-filled / pasted
-transcripts); the dashboard.
+**Built:** Deepgram audio transcription (`nova-3-medical`) wired into
+`POST /ingest/audio`. **Not built:** the dashboard.
 
 ### What the dashboard consumes — the `Task` (see `backend/app/contracts/`)
 - `id`, `message_id`, `patient_id`, `patient_name`
@@ -55,9 +55,15 @@ interactive docs at `/docs`). CORS open to all origins for the demo.
 - `POST /tasks/{id}/decision` `{decision: approve|dismiss|edit|reopen, note?, edited_text?, reviewer?}` → updated `TaskView`.
 - `GET /patients/{id}` → `PatientCard`.
 - `POST /ingest` `{transcript, channel}` → runs the **real Claude intake** on a
-  pasted transcript and returns the new `TaskView`(s). The "watch the AI work"
-  moment (needs `ANTHROPIC_API_KEY`).
+  pasted transcript and returns the new `TaskView`(s) (needs `ANTHROPIC_API_KEY`).
+- `POST /ingest/audio` (multipart `file`) → **Deepgram transcribes** an uploaded
+  voicemail → real intake → new `TaskView`(s); the audio is kept for playback.
+  The full hero moment (needs `DEEPGRAM_API_KEY` + `ANTHROPIC_API_KEY`).
+- `GET /audio/{message_id}` → streams the uploaded voicemail back (for the player).
 - `POST /reset` → rebuilds the demo queue (handy between filming takes).
+
+`TaskView.audio_url` is set for uploaded voicemails (→ the `GET /audio/...` URL),
+null for typed/seeded messages — the dashboard shows an audio player when present.
 
 `TaskView` = `{ task, transcript, patient }` (see `app/api/schemas.py`). The queue
 is **pre-seeded at startup** from the demo voicemails via the canned (offline)
@@ -119,6 +125,7 @@ listen→understand→check→draft half intact:
 backend/app/
   contracts/        # shared schemas: enums, message, intent, patient, draft, task, clinic_policy
   pipeline/
+    transcription.py  # Deepgram STT (nova-3-medical): audio bytes -> transcript
     intake.py         # Claude Haiku extraction (prompt-and-parse -> Intent)
     orchestrator.py   # linear spine: emergency -> identity -> status gate -> dispatch
   eligibility/        # refill.py, reschedule.py — deterministic, policy-driven checks
@@ -131,9 +138,9 @@ backend/app/
   test_slice.py       # end-to-end: 19 messages -> task queue
 dashboard/            # NOT BUILT YET — Next.js queue + history + read-only patient card
 ```
-Not built: `transcription.py` (Deepgram) — the pipeline runs off pre-filled /
-pasted transcripts; wire real audio later. The API IS built (`app/main.py`, see
-Current state above).
+Both built: `transcription.py` (Deepgram) and the API (`app/main.py`). The
+pipeline still also accepts pre-filled / pasted transcripts (the canned baseline
+queue + `POST /ingest`). See Current state above.
 
 ## Data model direction (v1)
 Centered on the message/task, not patient records:

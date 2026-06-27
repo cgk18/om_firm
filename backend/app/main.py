@@ -13,7 +13,7 @@ live-ingested tasks stay coherent. Demo only: in-memory, single user, CORS open.
 
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 try:
@@ -28,6 +28,7 @@ from app.api.views import patient_card, task_view
 from app.contracts import Channel, Message, default_policy
 from app.eval.golden import canned_extract
 from app.pipeline.intake import extract_intent
+from app.pipeline.transcription import transcribe_audio
 from app.scheduling import HoldStore
 from app.seed import REFERENCE_NOW, SeedStore, load_messages
 from app.tasks import TasksRepo, apply_decision, intake_to_tasks
@@ -42,6 +43,7 @@ class AppState:
         self.repo = TasksRepo()
         self.holds = HoldStore()
         self.messages: dict[str, Message] = {}
+        self.audio: dict[str, tuple[bytes, str]] = {}  # message_id -> (bytes, content_type)
 
     def ingest(self, message: Message, *, extract):
         self.messages[message.id] = message
@@ -119,6 +121,34 @@ def ingest(body: IngestRequest):
     except Exception as e:  # noqa: BLE001 - surface intake/LLM failures cleanly
         raise HTTPException(502, f"intake failed: {e}")
     return [task_view(t, state) for t in tasks]
+
+
+@app.post("/ingest/audio", response_model=list[TaskView])
+def ingest_audio(file: UploadFile = File(...)):
+    """Live voicemail: upload audio -> Deepgram transcribe -> real Claude intake ->
+    new task(s), with the audio kept for playback. The full hero moment."""
+    audio = file.file.read()
+    try:
+        transcript = transcribe_audio(audio)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"transcription failed: {e}")
+    msg = Message(channel=Channel.voicemail, received_at=REFERENCE_NOW, transcript=transcript)
+    msg.raw_ref = f"/audio/{msg.id}"
+    state.audio[msg.id] = (audio, file.content_type or "audio/wav")
+    try:
+        tasks = state.ingest(msg, extract=extract_intent)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"intake failed: {e}")
+    return [task_view(t, state) for t in tasks]
+
+
+@app.get("/audio/{message_id}")
+def get_audio(message_id: str):
+    item = state.audio.get(message_id)
+    if item is None:
+        raise HTTPException(404, "audio not found")
+    data, content_type = item
+    return Response(content=data, media_type=content_type)
 
 
 @app.post("/reset")

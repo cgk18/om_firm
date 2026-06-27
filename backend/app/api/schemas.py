@@ -44,6 +44,7 @@ class TaskView(BaseModel):
     task: Task
     transcript: str | None = None
     patient: PatientCard | None = None
+    audio_url: str | None = None  # set when the message was an uploaded voicemail (playback)
 
 
 class DecisionRequest(BaseModel):
