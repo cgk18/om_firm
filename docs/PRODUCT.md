@@ -1,6 +1,6 @@
-# {{NAME}} — Product
+# Otomeda — Product
 
-> Working name is a placeholder. Swap `{{NAME}}` everywhere once chosen.
+> Product brand name: **Otomeda**. Repo working name stays `om_firm`.
 
 ## What it is
 An AI admin assistant for clinic front-desk staff. It listens to every inbound
@@ -28,7 +28,7 @@ One-liner (provisional):
 
 Positioning statement:
 > For small primary-care clinics drowning in patient voicemails and messages,
-> {{NAME}} is an AI admin assistant that listens to every inbound message,
+> Otomeda is an AI admin assistant that listens to every inbound message,
 > figures out what the patient needs, and drafts the action — so staff just
 > review and approve instead of starting from scratch. Unlike EHR add-ons or
 > autonomous "AI agents," it keeps a human in control of every decision and

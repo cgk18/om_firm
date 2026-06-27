@@ -1,7 +1,6 @@
-# {{NAME}} — working instructions
+# Otomeda — working instructions
 
-Repo working name: `om_firm`. Product brand name is TBD — `{{NAME}}` is a
-placeholder; one find-replace once chosen.
+Repo working name: `om_firm` (directory/remote). Product brand name: **Otomeda**.
 
 ## Read first
 - `docs/PRODUCT.md` — what we're building, for whom, positioning, v1 scope.

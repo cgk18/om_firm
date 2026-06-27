@@ -1,4 +1,4 @@
-# {{NAME}} — Architecture (v1)
+# Otomeda — Architecture (v1)
 
 ## The flow (draft-and-route, no writeback)
 ```
@@ -27,8 +27,8 @@ message relay) and cross-cutting gates (emergency hard-stop, two-factor identity
 match, patient-status gate, multi-intent → multiple tasks). 19 seeded scenarios,
 all green via `app/test_slice.py`.
 
-**Not built:** real audio transcription (runs off pre-filled transcripts); **a web
-API**; the dashboard.
+**Not built:** real audio transcription (Deepgram — runs off pre-filled / pasted
+transcripts); the dashboard.
 
 ### What the dashboard consumes — the `Task` (see `backend/app/contracts/`)
 - `id`, `message_id`, `patient_id`, `patient_name`
@@ -47,17 +47,23 @@ The **read-only patient-context card** is built from the seed store, not the Tas
 their active `Prescription`s + `Appointment`s. The **transcript** lives on the
 `Message` (join via `task.message_id`).
 
-### The API the dashboard needs (build this first — it's thin)
-There is no HTTP layer yet. The backend exposes plain functions:
-- `app.tasks.intake_to_tasks(message, repo=, store=, policy=, now=, holds=, extract=)`
-  → runs the pipeline, stores tasks.
-- `repo.list()` / `repo.get(id)` → read the queue.
-- `app.tasks.apply_decision(repo, task_id, "approve"|"dismiss"|"edit"|"reopen",
-  note=, edited_text=)` → the staff actions (approve marks `approved`, executes
-  nothing; `edit` replaces the draft text / relay body).
-Wrap these in FastAPI: `GET /tasks` (joined with message transcript + patient
-card), `GET /tasks/{id}`, `POST /tasks/{id}/decision`. Demo state is in-memory
-(resets per run); the repo is behind an interface so a real DB drops in later.
+### The API (built — `backend/app/main.py`, FastAPI)
+Run: `cd backend && .venv/bin/uvicorn app.main:app --reload` (→ `localhost:8000`,
+interactive docs at `/docs`). CORS open to all origins for the demo.
+- `GET /tasks?status=&type=` → `list[TaskView]` — the queue, enriched.
+- `GET /tasks/{id}` → `TaskView`.
+- `POST /tasks/{id}/decision` `{decision: approve|dismiss|edit|reopen, note?, edited_text?, reviewer?}` → updated `TaskView`.
+- `GET /patients/{id}` → `PatientCard`.
+- `POST /ingest` `{transcript, channel}` → runs the **real Claude intake** on a
+  pasted transcript and returns the new `TaskView`(s). The "watch the AI work"
+  moment (needs `ANTHROPIC_API_KEY`).
+- `POST /reset` → rebuilds the demo queue (handy between filming takes).
+
+`TaskView` = `{ task, transcript, patient }` (see `app/api/schemas.py`). The queue
+is **pre-seeded at startup** from the demo voicemails via the canned (offline)
+extractor — full queue instantly, no key needed. All time math uses
+`REFERENCE_NOW` (the demo's "today"). State is in-memory (single user); the repo
+is behind an interface so a real DB drops in later.
 
 ## Carry-over map (from the public hackathon repo)
 The hackathon repo (`Berkeley-AI-Hackathon`, public) is reference-only. We do
@@ -125,8 +131,9 @@ backend/app/
   test_slice.py       # end-to-end: 19 messages -> task queue
 dashboard/            # NOT BUILT YET — Next.js queue + history + read-only patient card
 ```
-Not built: `transcription.py` (Deepgram) — the pipeline runs off pre-filled
-transcripts; wire real audio later. No API layer yet (see Current state below).
+Not built: `transcription.py` (Deepgram) — the pipeline runs off pre-filled /
+pasted transcripts; wire real audio later. The API IS built (`app/main.py`, see
+Current state above).
 
 ## Data model direction (v1)
 Centered on the message/task, not patient records:

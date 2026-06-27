@@ -43,6 +43,7 @@ def apply_decision(
     note: str | None = None,
     reviewer: str = "Front desk",
     edited_text: str | None = None,
+    holds=None,
 ) -> Task | None:
     """approve | dismiss | reopen | edit. Returns the updated task, or None if
     missing. Approval is a status write only — no external action is executed.
@@ -75,6 +76,8 @@ def apply_decision(
         task.reviewed_at = now
         task.reviewed_by = reviewer
         task.reviewer_note = note
+        if holds is not None:  # free any slot a rejected reschedule was holding
+            holds.release(task_id)
     elif decision == "reopen":
         task.status = TaskStatus.needs_action
         task.approved_at = task.rejected_at = task.reviewed_at = task.reviewed_by = None

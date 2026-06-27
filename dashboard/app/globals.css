@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/*
+  Otomeda — the front desk's listening room.
+  Identity: oto- (to listen) + medical. The product hears every inbound message
+  and drafts the action. Visual language: calm, attentive, clinical-but-warm.
+
+  Palette (fresh — NOT the hackathon sky-blue): deep teal "signal" as the brand /
+  positive action, warm paper neutrals, amber for needs-action, rose for urgent.
+  Status is ALWAYS icon + text + color, never color alone.
+
+  These tokens are the single reskin surface — when the real Otomeda logo/brand
+  lands, change them here and the app follows.
+*/
+@theme {
+  --color-background: #f6f7f6; /* warm paper canvas */
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef1f0; /* subtle fills */
+  --color-foreground: #11201f; /* deep teal-tinted ink */
+  --color-muted-foreground: #5b6b69; /* slate-teal */
+
+  --color-primary: #0e7c86; /* deep teal — brand + approve/positive */
+  --color-primary-deep: #0a5b63; /* teal-800 */
+  --color-primary-soft: #d8efef; /* teal-50 wash */
+  --color-on-primary: #ffffff;
+
+  --color-signal: #2bb7c4; /* bright cyan — "live"/listening accent (waveform) */
+
+  --color-accent: #b45309; /* amber-700 — needs action / judgment */
+  --color-accent-soft: #fdf0d9;
+  --color-urgent: #e11d48; /* rose-600 — emergency / urgent */
+  --color-urgent-soft: #ffe4e6;
+
+  --color-success: #0e7c86; /* checks pass = teal family */
+  --color-success-soft: #d8efef;
+
+  --color-border: #dfe4e2; /* soft hairline */
+  --color-border-strong: #c6cecb;
+  --color-ring: #0e7c86;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+
+  --shadow-card: 0 1px 2px 0 rgb(17 32 31 / 0.04), 0 1px 3px 0 rgb(17 32 31 / 0.06);
+  --shadow-pop: 0 6px 20px -4px rgb(17 32 31 / 0.12), 0 2px 8px -2px rgb(17 32 31 / 0.08);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  /* tabular figures so counts/dates don't jitter */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard focus visible everywhere (accessibility). */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

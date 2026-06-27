@@ -1,6 +1,19 @@
-# {{NAME}} — Decisions Log
+# Otomeda — Decisions Log
 
 Running log of decisions + *why*, so we never re-litigate. Newest at top.
+
+## 2026-06-25 — Demo API
+- **Thin FastAPI layer** (`backend/app/main.py`) over the in-memory pipeline.
+  Endpoints: `GET /tasks`, `GET /tasks/{id}`, `POST /tasks/{id}/decision`,
+  `GET /patients/{id}`, `POST /ingest`, `POST /reset`.
+- **Enriched `TaskView`** (`task` + `transcript` + `patient` card) so the UI needs
+  one call per screen.
+- **Queue pre-seeded at startup with the CANNED extractor** (offline, instant, no
+  key) — a reliable baseline queue. **`POST /ingest` runs the REAL Claude intake**
+  on a pasted transcript for the "watch the AI work" film moment. `POST /reset`
+  rebuilds the queue between takes. All time math uses `REFERENCE_NOW`.
+  **Why:** baseline can't depend on live LLM not flaking; live ingest is the demo
+  hero shot. CORS open, in-memory, single-user — demo only.
 
 ## 2026-06-25 — v1 guardrails + message relay un-parked
 - **Patient-status gate:** added `Patient.status` (active/inactive/discharged/…).
@@ -141,9 +154,11 @@ Read the actual hackathon code (not just the carry-over map). Findings + calls:
   idea + learnings). They keep their artifact. Rebuild was needed anyway for the
   draft-and-route / HIPAA-real direction.
 
-- **Decision (name):** Deferred — originator will pick. Wants a fully invented,
-  zero-index word (cf. their prior "foochastic"). Placeholder `{{NAME}}` until
-  then.
+- **Decision (name):** Deferred at the time — originator to pick a fully
+  invented, zero-index word (cf. their prior "foochastic"). **Resolved
+  2026-06-26: the product brand name is _Otomeda_** (the originator's original
+  hackathon name, before a teammate renamed it to "medi"). `om_firm` remains the
+  repo/directory working name.
 
 ## 2026-06-24 — v1 scope locked
 - **Demo first**, not pilot. Architected toward a real pilot. No live PHI yet.
